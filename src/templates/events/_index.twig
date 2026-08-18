@@ -1,0 +1,115 @@
+{% extends "_layouts/cp.twig" %}
+{% import "_includes/forms.twig" as forms %}
+
+{% set title = "Events"|t('tape') %}
+{% set selectedSubnavItem = 'events' %}
+
+{% set eventOptions = [{ label: "Any event"|t('tape'), value: '' }] %}
+{% for name in eventNames %}{% set eventOptions = eventOptions|merge([{ label: name, value: name }]) %}{% endfor %}
+
+{% set pageParams = craft.app.request.queryParams|filter((v, k) => k != 'page' and k != 'p') %}
+
+{% block content %}
+    <div class="readable">
+        <p class="light">
+            {{ "Every conversion Tape has handled, and what became of it. This is the first place to look when somebody says a pixel is not firing — it usually ends the conversation."|t('tape') }}
+        </p>
+    </div>
+
+    <form method="get" action="" class="tape-filters">
+        {{ forms.select({
+            name: 'event',
+            options: eventOptions,
+            value: criteria.eventName ?? '',
+        }) }}
+
+        {{ forms.select({
+            name: 'status',
+            options: [
+                { label: "Any outcome"|t('tape'), value: '' },
+                { label: "Written into the page"|t('tape'), value: 'emitted' },
+                { label: "Confirmed sent"|t('tape'), value: 'sent' },
+                { label: "Queued"|t('tape'), value: 'pending' },
+                { label: "Failed"|t('tape'), value: 'failed' },
+                { label: "Skipped — consent"|t('tape'), value: 'skipped' },
+            ],
+            value: criteria.status ?? '',
+        }) }}
+
+        {{ forms.select({
+            name: 'channel',
+            options: [
+                { label: "Any channel"|t('tape'), value: '' },
+                { label: "Browser"|t('tape'), value: 'browser' },
+                { label: "Server"|t('tape'), value: 'server' },
+                { label: "Recovered"|t('tape'), value: 'recovery' },
+            ],
+            value: criteria.channel ?? '',
+        }) }}
+
+        <button type="submit" class="btn">{{ "Filter"|t('tape') }}</button>
+        {% if criteria %}<a href="{{ url('tape/events') }}" class="btn">{{ "Clear"|t('tape') }}</a>{% endif %}
+    </form>
+
+    {% if rows is empty %}
+        <div class="zilch"><p>{{ "Nothing recorded yet."|t('tape') }}</p></div>
+    {% else %}
+        <table class="data fullwidth">
+            <thead>
+                <tr>
+                    <th>{{ "When"|t('tape') }}</th>
+                    <th>{{ "Event"|t('tape') }}</th>
+                    <th>{{ "Destination"|t('tape') }}</th>
+                    <th>{{ "Channel"|t('tape') }}</th>
+                    <th>{{ "Outcome"|t('tape') }}</th>
+                    <th>{{ "Value"|t('tape') }}</th>
+                    <th>{{ "Order"|t('tape') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                    {% set destination = destinations[row.destinationUid] ?? null %}
+                    <tr>
+                        <td class="light">{{ row.occurredAt|datetime('short') }}</td>
+                        <td><code>{{ row.eventName }}</code></td>
+                        <td>{{ destination ? destination.name : ('Removed'|t('tape')) }}</td>
+                        <td class="light">{{ row.channel }}</td>
+                        <td>
+                            {% if row.status == 'sent' %}
+                                <span class="status green"></span> {{ "Sent"|t('tape') }}
+                            {% elseif row.status == 'emitted' %}
+                                <span class="status orange"></span> {{ "Written into the page"|t('tape') }}
+                            {% elseif row.status == 'pending' %}
+                                <span class="status blue"></span> {{ "Queued"|t('tape') }}
+                            {% elseif row.status == 'skipped' %}
+                                <span class="status"></span> {{ "Skipped"|t('tape') }}
+                            {% else %}
+                                <span class="status red"></span> {{ "Failed"|t('tape') }}
+                                {% if row.error %}<div class="light code" style="font-size:.75em">{{ row.error|slice(0, 300) }}</div>{% endif %}
+                            {% endif %}
+                        </td>
+                        <td class="light">{{ row.value ? (row.value|number_format(2) ~ ' ' ~ (row.currency ?? '')) : '' }}</td>
+                        <td class="light">{{ row.transactionId ?? '' }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <p class="light" style="margin-top:1em">
+            {{ "“Written into the page” means Tape put the tag in the HTML and the browser never reported back — an ad blocker, or a closed tab. Those are exactly the ones recovery goes after."|t('tape') }}
+        </p>
+
+        {% set pages = (total / perPage)|round(0, 'ceil') %}
+        {% if pages > 1 %}
+            <nav class="pagination" style="margin-top:1em">
+                {% if page > 1 %}<a class="btn" href="{{ url('tape/events', pageParams|merge({ page: page - 1 })) }}">{{ "Previous"|t('app') }}</a>{% endif %}
+                <span class="light">{{ "Page {page} of {pages}"|t('tape', { page: page, pages: pages }) }}</span>
+                {% if page < pages %}<a class="btn" href="{{ url('tape/events', pageParams|merge({ page: page + 1 })) }}">{{ "Next"|t('app') }}</a>{% endif %}
+            </nav>
+        {% endif %}
+    {% endif %}
+{% endblock %}
+
+{% css %}
+.tape-filters { display: flex; gap: .5rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
+{% endcss %}

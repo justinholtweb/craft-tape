@@ -1,0 +1,176 @@
+{% extends "_layouts/cp.twig" %}
+{% import "_includes/forms.twig" as forms %}
+
+{% set title = "Accuracy"|t('tape') %}
+{% set selectedSubnavItem = 'accuracy' %}
+
+{% block content %}
+    <div class="readable">
+        <p>
+            {{ "Orders you actually took, against conversions any platform was told about. There is no way to see this number from inside Google Ads or Meta — they only know what reached them."|t('tape') }}
+        </p>
+    </div>
+
+    {% if not commerce %}
+        <blockquote class="note">
+            <p>{{ "This report compares conversions against Commerce orders, so it needs Craft Commerce. Everything else in Tape works without it."|t('tape') }}</p>
+        </blockquote>
+    {% else %}
+        <form method="get" action="" class="tape-filters">
+            {% set destinationOptions = [{ label: "Any destination"|t('tape'), value: '' }] %}
+            {% for uid, destination in destinations %}
+                {% set destinationOptions = destinationOptions|merge([{ label: destination.name, value: uid }]) %}
+            {% endfor %}
+
+            {{ forms.select({ name: 'destination', options: destinationOptions, value: destinationUid ?? '' }) }}
+            {{ forms.select({
+                name: 'days',
+                options: [
+                    { label: "Last 7 days"|t('tape'), value: '7' },
+                    { label: "Last 30 days"|t('tape'), value: '30' },
+                    { label: "Last 90 days"|t('tape'), value: '90' },
+                ],
+                value: days,
+            }) }}
+            <button type="submit" class="btn">{{ "Show"|t('tape') }}</button>
+        </form>
+
+        <div class="tape-figures">
+            <div class="tape-figure">
+                <span class="tape-figure__value">{{ orders }}</span>
+                <span class="light">{{ "orders completed"|t('tape') }}</span>
+            </div>
+            <div class="tape-figure">
+                <span class="tape-figure__value">{{ tracked }}</span>
+                <span class="light">{{ "conversions tracked"|t('tape') }}</span>
+            </div>
+            <div class="tape-figure {{ rate is not null and rate < 90 ? 'tape-figure--warn' : '' }}">
+                <span class="tape-figure__value">{{ rate is null ? '—' : rate ~ '%' }}</span>
+                <span class="light">{{ "coverage"|t('tape') }}</span>
+            </div>
+        </div>
+
+        {% if rate is not null and rate < 90 %}
+            <blockquote class="note warning">
+                <p>
+                    {{ "Roughly {n} orders in the period were never reported to any platform. That is money being taken off campaigns that earned it."|t('tape', { n: orders - tracked }) }}
+                    {% if recoveryEnabled %}
+                        {{ "Recovery is on — run a sweep now, or check that `php craft tape/conversions/recover` is on a schedule."|t('tape')|md(inlineOnly=true) }}
+                    {% else %}
+                        {{ "Turn on server-side tracking for a destination and enable recovery in Tape’s settings to close the gap."|t('tape') }}
+                    {% endif %}
+                </p>
+                {% if recoveryEnabled %}
+                    <button type="button" class="btn submit" id="tape-recover">{{ "Look for missed conversions now"|t('tape') }}</button>
+                {% endif %}
+            </blockquote>
+        {% endif %}
+
+        {% if rows %}
+            <table class="data fullwidth">
+                <thead>
+                    <tr>
+                        <th>{{ "Day"|t('tape') }}</th>
+                        <th>{{ "Orders"|t('tape') }}</th>
+                        <th>{{ "Tracked"|t('tape') }}</th>
+                        <th>{{ "Coverage"|t('tape') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows|reverse %}
+                        {% set dayRate = row.orders > 0 ? (row.tracked / row.orders * 100)|round(1) : null %}
+                        <tr>
+                            <td>{{ row.date }}</td>
+                            <td>{{ row.orders }}</td>
+                            <td>{{ row.tracked }}</td>
+                            <td class="{{ dayRate is not null and dayRate < 90 ? 'error' : 'light' }}">{{ dayRate is null ? '—' : dayRate ~ '%' }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    {% endif %}
+
+    {% if broken %}
+        <hr>
+        <h2>{{ "Destinations that cannot fire"|t('tape') }}</h2>
+        <ul class="errors">
+            {% for destination in broken %}
+                {% for problem in destination.getProblems() %}
+                    <li><strong>{{ destination.name }}</strong> — {{ problem }}</li>
+                {% endfor %}
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    {% if unrecoverable %}
+        <hr>
+        <h2>{{ "Cannot be recovered"|t('tape') }}</h2>
+        <p class="light">{{ "These destinations track purchases in the browser only, so a blocked tag is a conversion lost for good."|t('tape') }}</p>
+        <ul>
+            {% for destination in unrecoverable %}
+                <li>
+                    <strong>{{ destination.name }}</strong> —
+                    {% if not destination.getPlatform().supportsServerSide() %}
+                        {{ "this platform has no server-side API"|t('tape') }}
+                    {% else %}
+                        {{ "server-side tracking is switched off"|t('tape') }}
+                        <a href="{{ url('tape/destinations/' ~ destination.uid) }}">{{ "turn it on"|t('tape') }}</a>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    {% if health %}
+        <hr>
+        <h2>{{ "Last {n} days by destination"|t('tape', { n: days }) }}</h2>
+        <table class="data fullwidth">
+            <thead>
+                <tr>
+                    <th>{{ "Destination"|t('tape') }}</th>
+                    <th>{{ "Sent"|t('tape') }}</th>
+                    <th>{{ "Unconfirmed"|t('tape') }}</th>
+                    <th>{{ "Failed"|t('tape') }}</th>
+                    <th>{{ "Skipped"|t('tape') }}</th>
+                    <th>{{ "Last event"|t('tape') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for uid, stats in health %}
+                    <tr>
+                        <td>{{ destinations[uid].name ?? ("Removed"|t('tape')) }}</td>
+                        <td>{{ stats.sent ?? 0 }}</td>
+                        <td>{{ stats.emitted ?? 0 }}</td>
+                        <td class="{{ (stats.failed ?? 0) > 0 ? 'error' : '' }}">{{ stats.failed ?? 0 }}</td>
+                        <td class="light">{{ stats.skipped ?? 0 }}</td>
+                        <td class="light">{{ stats.lastAt ? stats.lastAt|datetime('short') : '' }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+{% endblock %}
+
+{% css %}
+.tape-filters { display: flex; gap: .5rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
+.tape-figures { display: flex; gap: 1.5rem; margin: 1rem 0 1.5rem; flex-wrap: wrap; }
+.tape-figure { border: 1px solid var(--hairline-color); border-radius: var(--large-border-radius); padding: .85rem 1.25rem; min-width: 9rem; }
+.tape-figure__value { display: block; font-size: 1.9rem; font-weight: 600; line-height: 1.1; }
+.tape-figure--warn .tape-figure__value { color: var(--error-color); }
+{% endcss %}
+
+{% js %}
+var recover = document.getElementById('tape-recover');
+if (recover) {
+    recover.addEventListener('click', function () {
+        recover.classList.add('loading');
+        Craft.sendActionRequest('POST', 'tape/reports/recover')
+            .then(function (response) { Craft.cp.displayNotice(response.data.message); })
+            .catch(function (e) {
+                Craft.cp.displayError(e.response && e.response.data ? e.response.data.message : Craft.t('tape', 'Could not start recovery.'));
+            })
+            .finally(function () { recover.classList.remove('loading'); });
+    });
+}
+{% endjs %}

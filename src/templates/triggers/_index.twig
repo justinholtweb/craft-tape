@@ -1,0 +1,79 @@
+{% extends "_layouts/cp.twig" %}
+
+{% set title = "Triggers"|t('tape') %}
+{% set selectedSubnavItem = 'triggers' %}
+
+{% if not readOnly and isPro %}
+    {% set actionButton %}
+        <a href="{{ url('tape/triggers/new') }}" class="btn submit add icon">{{ "New trigger"|t('tape') }}</a>
+    {% endset %}
+{% endif %}
+
+{% block content %}
+    {% if not isPro %}
+        <blockquote class="note warning">
+            <p>{{ "Triggers need Tape Pro. Anything configured here stays saved and starts working the moment the licence is upgraded."|t('tape') }}</p>
+        </blockquote>
+    {% endif %}
+
+    <div class="readable">
+        <p class="light">
+            {{ "A trigger turns something a visitor does in the browser into a tracked conversion, without anybody editing a template. “Count it as a lead when somebody clicks the phone number” is a marketing request, and this is where it gets answered."|t('tape') }}
+        </p>
+        <p class="light">
+            {{ "The condition is evaluated in the browser; the payload is not. Tape builds each trigger’s event for every destination when the page renders, so a visitor cannot talk it into sending a conversion worth ten thousand pounds."|t('tape') }}
+        </p>
+    </div>
+
+    {% if triggers is empty %}
+        <div class="zilch"><p>{{ "No triggers yet."|t('tape') }}</p></div>
+    {% else %}
+        <table class="data fullwidth">
+            <thead>
+                <tr>
+                    <th>{{ "Name"|t('tape') }}</th>
+                    <th>{{ "When"|t('tape') }}</th>
+                    <th>{{ "Fires"|t('tape') }}</th>
+                    <th>{{ "Pages"|t('tape') }}</th>
+                    <th class="thin"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for trigger in triggers %}
+                    <tr>
+                        <td>
+                            <a href="{{ url('tape/triggers/' ~ trigger.uid) }}">{{ trigger.name }}</a>
+                            {% if not trigger.enabled %}<span class="status off"></span> <span class="light">{{ "Disabled"|t('tape') }}</span>{% endif %}
+                        </td>
+                        <td class="light">
+                            {{ trigger.type }}
+                            {%- if trigger.selector %} <code>{{ trigger.selector }}</code>{% endif %}
+                            {%- if trigger.threshold %} <code>{{ trigger.threshold }}</code>{% endif %}
+                        </td>
+                        <td>
+                            <code>{{ trigger.event }}</code>
+                            {% if trigger.value %}<span class="light">{{ trigger.value }} {{ trigger.currency }}</span>{% endif %}
+                        </td>
+                        <td class="light">{{ trigger.uris ? trigger.uris|join(', ') : "Every page"|t('tape') }}</td>
+                        <td class="thin">
+                            {% if not readOnly %}
+                                <button type="button" class="delete icon js-tape-delete-trigger" data-uid="{{ trigger.uid }}" data-name="{{ trigger.name }}" title="{{ 'Delete'|t('app') }}"></button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+{% endblock %}
+
+{% js %}
+document.querySelectorAll('.js-tape-delete-trigger').forEach(function (button) {
+    button.addEventListener('click', function () {
+        if (!confirm(Craft.t('tape', 'Delete “{name}”?', { name: button.dataset.name }))) return;
+        Craft.sendActionRequest('POST', 'tape/triggers/delete', { data: { uid: button.dataset.uid } })
+            .then(function () { window.location.reload(); })
+            .catch(function () { Craft.cp.displayError(Craft.t('tape', 'Could not delete the trigger.')); });
+    });
+});
+{% endjs %}

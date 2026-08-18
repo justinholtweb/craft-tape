@@ -1,0 +1,355 @@
+{% import "_includes/forms.twig" as forms %}
+
+{% set uriRows = [] %}
+{% for pattern in settings.excludeUris %}{% set uriRows = uriRows|merge([{ uri: pattern }]) %}{% endfor %}
+
+{% set ipRows = [] %}
+{% for address in settings.excludeIps %}{% set ipRows = ipRows|merge([{ ip: address }]) %}{% endfor %}
+
+{% set groupOptions = [] %}
+{% for group in userGroups %}{% set groupOptions = groupOptions|merge([{ label: group.name, value: group.handle }]) %}{% endfor %}
+
+{# Tape's settings. Everything a single destination might reasonably disagree about lives on the
+   destination instead; what is left here is either a site-wide fact or a safety rail. #}
+
+<div class="readable">
+    <blockquote class="note">
+        <p>
+            {{ "Destinations — the pixels themselves — are configured under **Tape → Destinations**. These settings apply to all of them."|t('tape')|md }}
+        </p>
+    </blockquote>
+</div>
+
+<h2>{{ "Delivery"|t('tape') }}</h2>
+
+{{ forms.lightswitchField({
+    label: "Add the tags automatically"|t('tape'),
+    instructions: "Writes Tape’s script into every front-end page. Turn this off to place `{{ tape.head() }}` and `{{ tape.body() }}` in your own layout — placing either by hand suppresses injection for that page regardless."|t('tape'),
+    id: 'autoInject',
+    name: 'autoInject',
+    on: settings.autoInject,
+}) }}
+
+{{ forms.editableTableField({
+    label: "Never track these pages"|t('tape'),
+    instructions: "URI patterns Tape leaves alone entirely. `*` is a wildcard — `account/*`."|t('tape'),
+    id: 'excludeUris',
+    name: 'excludeUris',
+    cols: { uri: { heading: "URI"|t('tape'), type: 'singleline', width: '100%' } },
+    rows: uriRows,
+    addRowLabel: "Add a pattern"|t('tape'),
+    allowAdd: true,
+    allowDelete: true,
+    allowReorder: false,
+}) }}
+
+<hr>
+
+<h2>{{ "What gets tracked"|t('tape') }}</h2>
+
+{{ forms.lightswitchField({
+    label: "Page views"|t('tape'),
+    instructions: "Fires a `page_view` on every front-end page. Turn this off if a tag manager container is already doing it."|t('tape'),
+    id: 'trackPageViews',
+    name: 'trackPageViews',
+    on: settings.trackPageViews,
+}) }}
+
+{% if commerce %}
+    {{ forms.lightswitchField({
+        label: "Track the Commerce funnel automatically"|t('tape'),
+        instructions: "Wires product views, cart changes, checkout steps and purchases to Commerce’s own events, with no template changes. Turn it off to call `craft.tape.*` yourself."|t('tape'),
+        id: 'autoTrackCommerce',
+        name: 'autoTrackCommerce',
+        on: settings.autoTrackCommerce,
+    }) }}
+
+    {{ forms.selectField({
+        label: "What a purchase is worth"|t('tape'),
+        instructions: "Whichever you pick, use the same basis in every platform’s reporting or the numbers will never agree."|t('tape'),
+        id: 'valueBasis',
+        name: 'valueBasis',
+        options: settings.getValueBasisOptions(),
+        value: settings.valueBasis,
+    }) }}
+
+    {{ forms.selectField({
+        label: "Product IDs"|t('tape'),
+        instructions: "**This has to match the IDs in your Merchant Center or Meta catalogue feed.** A mismatch produces tags that fire perfectly and match no product at all — which is the single most common cause of dynamic remarketing showing nothing."|t('tape'),
+        id: 'productIdSource',
+        name: 'productIdSource',
+        options: settings.getProductIdOptions(),
+        value: settings.productIdSource,
+    }) }}
+
+    {{ forms.textField({
+        label: "Product ID prefix"|t('tape'),
+        instructions: "Prepended to every product ID, for feeds built by a third party that add one."|t('tape'),
+        id: 'productIdPrefix',
+        name: 'productIdPrefix',
+        value: settings.productIdPrefix,
+        placeholder: 'shopify_GB_',
+    }) }}
+
+    {{ forms.textField({
+        label: "Brand field"|t('tape'),
+        instructions: "A custom field handle on the product supplying the brand. Commerce has no brand of its own and every platform wants one."|t('tape'),
+        id: 'brandField',
+        name: 'brandField',
+        value: settings.brandField,
+        placeholder: 'brand',
+    }) }}
+
+    {{ forms.textField({
+        label: "Category field"|t('tape'),
+        instructions: "A custom field handle supplying the category. A single category is expanded to its full ancestor path. Blank uses the Commerce product type name."|t('tape'),
+        id: 'categoryField',
+        name: 'categoryField',
+        value: settings.categoryField,
+        placeholder: 'productCategory',
+    }) }}
+{% endif %}
+
+{{ forms.textField({
+    label: "Default currency"|t('tape'),
+    instructions: "Used for events with no order behind them. Three-letter ISO code."|t('tape'),
+    id: 'defaultCurrency',
+    name: 'defaultCurrency',
+    value: settings.defaultCurrency,
+    placeholder: 'USD',
+    size: 6,
+}) }}
+
+<hr>
+
+<h2>{{ "Consent"|t('tape') }}</h2>
+
+{{ forms.lightswitchField({
+    label: "Google Consent Mode v2"|t('tape'),
+    instructions: "Emits consent signals ahead of every Google tag, and holds other destinations back until their category is granted. Safe to leave on even with no banner — it then emits “granted”, which is exactly what happens without it."|t('tape'),
+    id: 'consentMode',
+    name: 'consentMode',
+    on: settings.consentMode,
+    toggle: 'consent-settings',
+}) }}
+
+<div id="consent-settings" class="{{ settings.consentMode ? '' : 'hidden' }}">
+    {{ forms.selectField({
+        label: "Where the answer comes from"|t('tape'),
+        id: 'consentSource',
+        name: 'consentSource',
+        options: consentOptions,
+        value: settings.consentSource,
+        toggle: true,
+        targetPrefix: 'consent-source-',
+    }) }}
+
+    <div id="consent-source-cmp" class="{{ settings.consentSource == 'cmp' ? '' : 'hidden' }}">
+        {{ forms.selectField({
+            label: "Consent platform"|t('tape'),
+            id: 'consentCmp',
+            name: 'consentCmp',
+            options: cmpOptions,
+            value: settings.consentCmp,
+        }) }}
+
+        {{ forms.textareaField({
+            label: "Custom expression"|t('tape'),
+            instructions: "Only used when the platform above is “something else”. A JavaScript expression returning `{ ads: bool, analytics: bool, functionality: bool }`."|t('tape'),
+            id: 'consentExpression',
+            name: 'consentExpression',
+            value: settings.consentExpression,
+            class: 'code',
+            rows: 3,
+            placeholder: 'window.myBanner.state',
+        }) }}
+    </div>
+
+    {{ forms.textField({
+        label: "Consent cookie"|t('tape'),
+        instructions: "Tape mirrors whatever it resolves into this cookie so that server-side conversions can honour it too. Seven characters; no personal data."|t('tape'),
+        id: 'consentCookieName',
+        name: 'consentCookieName',
+        value: settings.consentCookieName,
+    }) }}
+
+    {{ forms.textField({
+        label: "Wait for an answer"|t('tape'),
+        instructions: "How long Google’s tags wait for a consent update before running in denied mode, in milliseconds."|t('tape'),
+        id: 'consentWaitForUpdate',
+        name: 'consentWaitForUpdate',
+        value: settings.consentWaitForUpdate,
+        size: 6,
+        type: 'number',
+    }) }}
+
+    {{ forms.lightswitchField({
+        label: "URL passthrough"|t('tape'),
+        instructions: "Carries ad click IDs in the URL when cookies are denied, so a conversion is still attributable."|t('tape'),
+        id: 'urlPassthrough',
+        name: 'urlPassthrough',
+        on: settings.urlPassthrough,
+    }) }}
+
+    {{ forms.lightswitchField({
+        label: "Redact ad data"|t('tape'),
+        instructions: "Strips ad click identifiers from requests when advertising storage is denied."|t('tape'),
+        id: 'adsDataRedaction',
+        name: 'adsDataRedaction',
+        on: settings.adsDataRedaction,
+    }) }}
+
+    {{ forms.lightswitchField({
+        label: "Honour Do Not Track and Global Privacy Control"|t('tape'),
+        instructions: "Treats either header as a refusal of everything but security storage."|t('tape'),
+        id: 'respectDoNotTrack',
+        name: 'respectDoNotTrack',
+        on: settings.respectDoNotTrack,
+    }) }}
+</div>
+
+<hr>
+
+<h2>{{ "Who is not tracked"|t('tape') }}</h2>
+
+{{ forms.lightswitchField({
+    label: "Exclude logged-in users"|t('tape'),
+    instructions: "Off by default: on a membership site the logged-in visitors **are** the customers. Use the group list below instead unless everyone with an account is staff."|t('tape'),
+    id: 'excludeLoggedIn',
+    name: 'excludeLoggedIn',
+    on: settings.excludeLoggedIn,
+}) }}
+
+{{ forms.checkboxSelectField({
+    label: "Exclude these user groups"|t('tape'),
+    instructions: "Members of these groups are never tracked."|t('tape'),
+    id: 'excludeUserGroups',
+    name: 'excludeUserGroups',
+    options: groupOptions,
+    values: settings.excludeUserGroups,
+    showAllOption: false,
+}) }}
+
+{{ forms.editableTableField({
+    label: "Exclude these addresses"|t('tape'),
+    instructions: "Single IPs or CIDR ranges — the office, the agency, a QA runner."|t('tape'),
+    id: 'excludeIps',
+    name: 'excludeIps',
+    cols: { ip: { heading: "IP or range"|t('tape'), type: 'singleline', width: '100%' } },
+    rows: ipRows,
+    addRowLabel: "Add an address"|t('tape'),
+    allowAdd: true,
+    allowDelete: true,
+    allowReorder: false,
+}) }}
+
+<hr>
+
+<h2>{{ "Server-side"|t('tape') }} <span class="light">{{ "Pro"|t('tape') }}</span></h2>
+
+{{ forms.lightswitchField({
+    label: "Send through the queue"|t('tape'),
+    instructions: "Keeps somebody else’s API latency off your checkout. Turn it off only if your queue does not run reliably — Tape then sends after the response has already gone out, never during it."|t('tape'),
+    id: 'queueServerSide',
+    name: 'queueServerSide',
+    on: settings.queueServerSide,
+}) }}
+
+{{ forms.textField({
+    label: "Timeout"|t('tape'),
+    instructions: "Seconds to wait on a conversions API."|t('tape'),
+    id: 'serverSideTimeout',
+    name: 'serverSideTimeout',
+    value: settings.serverSideTimeout,
+    size: 4,
+    type: 'number',
+}) }}
+
+{{ forms.lightswitchField({
+    label: "Enhanced conversions and advanced matching"|t('tape'),
+    instructions: "Sends a hashed email and phone number with conversions so platforms can match them to accounts. Hashing happens in Craft — nothing readable reaches the page."|t('tape'),
+    id: 'enhancedConversions',
+    name: 'enhancedConversions',
+    on: settings.enhancedConversions,
+}) }}
+
+{{ forms.lightswitchField({
+    label: "Also send the billing address"|t('tape'),
+    instructions: "**Google’s enhanced-conversions format sends the street, city, region and postal code unhashed.** That means turning this on writes a customer’s address into the page source of their order confirmation. Match rates improve slightly."|t('tape'),
+    id: 'enhancedConversionsAddress',
+    name: 'enhancedConversionsAddress',
+    on: settings.enhancedConversionsAddress,
+    warning: "Writes an unhashed postal address into the confirmation page."|t('tape'),
+}) }}
+
+{{ forms.textField({
+    label: "Country calling code"|t('tape'),
+    instructions: "Assumed for phone numbers stored without one. A number hashed without its country code matches nothing, anywhere, silently."|t('tape'),
+    id: 'phoneCountryCode',
+    name: 'phoneCountryCode',
+    value: settings.phoneCountryCode,
+    placeholder: '1',
+    size: 5,
+}) }}
+
+<hr>
+
+<h2>{{ "Recovery"|t('tape') }} <span class="light">{{ "Pro"|t('tape') }}</span></h2>
+
+<div class="readable">
+    <p>
+        {{ "Browser tags lose between a tenth and nearly half of real orders — to redirect payment gateways, ad blockers and closed tabs — and none of that loss is visible from inside the ad platform. Recovery finds orders whose conversion never reached anybody and sends it from the server, carrying the same event ID so a platform that did get it deduplicates rather than double-counts."|t('tape') }}
+    </p>
+    <p class="light">
+        {{ "Needs a destination with server-side tracking switched on, and `php craft tape/conversions/recover` on a schedule."|t('tape')|md(inlineOnly=true) }}
+    </p>
+</div>
+
+{{ forms.lightswitchField({
+    label: "Recover missed conversions"|t('tape'),
+    id: 'recoveryEnabled',
+    name: 'recoveryEnabled',
+    on: settings.recoveryEnabled,
+}) }}
+
+{{ forms.textField({
+    label: "Wait before recovering"|t('tape'),
+    instructions: "Minutes after an order completes before its conversion counts as missed. Too short and recovery starts racing the browser tag it exists to back up."|t('tape'),
+    id: 'recoveryDelayMinutes',
+    name: 'recoveryDelayMinutes',
+    value: settings.recoveryDelayMinutes,
+    size: 5,
+    type: 'number',
+}) }}
+
+{{ forms.textField({
+    label: "Look back"|t('tape'),
+    instructions: "Days. Most platforms reject an event older than about a week."|t('tape'),
+    id: 'recoveryLookbackDays',
+    name: 'recoveryLookbackDays',
+    value: settings.recoveryLookbackDays,
+    size: 4,
+    type: 'number',
+}) }}
+
+<hr>
+
+<h2>{{ "Housekeeping"|t('tape') }}</h2>
+
+{{ forms.textField({
+    label: "Keep the event log for"|t('tape'),
+    instructions: "Days. Conversions attached to an order are kept for the full window; everything else for a tenth of it."|t('tape'),
+    id: 'ledgerRetentionDays',
+    name: 'ledgerRetentionDays',
+    value: settings.ledgerRetentionDays,
+    size: 5,
+    type: 'number',
+}) }}
+
+{{ forms.lightswitchField({
+    label: "Debug"|t('tape'),
+    instructions: "Logs every event Tape builds, in Craft’s log and in the browser console. `window.tape.debug()` reports what the runtime believes."|t('tape'),
+    id: 'debug',
+    name: 'debug',
+    on: settings.debug,
+}) }}

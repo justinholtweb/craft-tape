@@ -1,0 +1,84 @@
+{
+    "name": "justinholtweb/craft-tape",
+    "description": "Conversion tracking for Craft CMS — Google Ads, GA4, Meta, TikTok and a dozen more pixels, wired to your content and your Commerce funnel, with Consent Mode v2 and server-side tracking.",
+    "type": "craft-plugin",
+    "version": "5.0.0",
+    "keywords": [
+        "craft",
+        "cms",
+        "craftcms",
+        "craft-plugin",
+        "tape",
+        "tracking",
+        "conversion tracking",
+        "google ads",
+        "google analytics",
+        "ga4",
+        "gtm",
+        "meta pixel",
+        "facebook pixel",
+        "tiktok",
+        "pinterest",
+        "consent mode",
+        "server-side tracking",
+        "commerce"
+    ],
+    "license": "proprietary",
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "authors": [
+        {
+            "name": "Justin Holt",
+            "homepage": "https://justinholt.com"
+        }
+    ],
+    "support": {
+        "docs": "https://craft-tape.com/docs",
+        "source": "https://github.com/justinholtweb/craft-tape",
+        "issues": "https://github.com/justinholtweb/craft-tape/issues",
+        "email": "justin@justinholt.com"
+    },
+    "require": {
+        "php": "^8.2",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "craftcms/cms": "^5.3.0"
+    },
+    "require-dev": {
+        "craftcms/ecs": "dev-main",
+        "craftcms/phpstan": "dev-main",
+        "phpunit/phpunit": "^10.5"
+    },
+    "suggest": {
+        "craftcms/commerce": "Lights up the full ecommerce funnel — product views, cart events, checkout steps, purchases and refunds."
+    },
+    "autoload": {
+        "psr-4": {
+            "justinholtweb\\tape\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "justinholtweb\\tape\\tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
+    },
+    "config": {
+        "allow-plugins": {
+            "yiisoft/yii2-composer": true,
+            "craftcms/plugin-installer": true,
+            "craftcms/generator": true
+        }
+    },
+    "extra": {
+        "name": "Tape",
+        "handle": "tape",
+        "developer": "Justin Holt",
+        "developerUrl": "https://justinholt.com",
+        "documentationUrl": "https://craft-tape.com/docs",
+        "changelogUrl": "https://raw.githubusercontent.com/justinholtweb/craft-tape/main/CHANGELOG.md",
+        "class": "justinholtweb\\tape\\Plugin"
+    }
+}

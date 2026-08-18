@@ -1,0 +1,36 @@
+{% extends "_layouts/cp.twig" %}
+
+{% set title = "New destination"|t('tape') %}
+{% set selectedSubnavItem = 'destinations' %}
+{% set crumbs = [{ label: "Destinations"|t('tape'), url: url('tape/destinations') }] %}
+
+{% block content %}
+    <p class="light">{{ "Pick a platform. You can add more than one of the same kind — an agency pixel and a client pixel, two brands on one install."|t('tape') }}</p>
+
+    <div class="tape-platforms">
+        {% for handle, platform in platforms %}
+            {% set locked = platform.requiresEdition() == 'pro' and not isPro %}
+            <div class="tape-platform {{ locked ? 'tape-platform--locked' : '' }}">
+                <h3>
+                    {% if locked %}
+                        {{ platform.displayName() }} <span class="light">— {{ "Pro"|t('tape') }}</span>
+                    {% else %}
+                        <a href="{{ url('tape/destinations/new', { platform: handle }) }}">{{ platform.displayName() }}</a>
+                    {% endif %}
+                </h3>
+                <p class="light">{{ platform.description() }}</p>
+                {% if platform.supportsServerSide() %}
+                    <p class="light"><span class="checkmark-icon"></span> {{ "Has a server-side API — conversions can be recovered when a browser tag is blocked."|t('tape') }}</p>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}
+
+{% css %}
+.tape-platforms { display: grid; grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr)); gap: 1rem; }
+.tape-platform { border: 1px solid var(--hairline-color); border-radius: var(--large-border-radius); padding: 1rem; }
+.tape-platform h3 { margin: 0 0 .35rem; }
+.tape-platform p { margin: 0 0 .35rem; font-size: .85em; }
+.tape-platform--locked { opacity: .55; }
+{% endcss %}

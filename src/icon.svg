@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Tape measure case -->
+  <rect x="7" y="30" width="60" height="60" rx="16"/>
+  <!-- Reel hub -->
+  <circle cx="37" cy="60" r="19"/>
+  <circle cx="37" cy="60" r="6.5" fill="currentColor" stroke="none"/>
+  <!-- The blade pulled out of the case, running up and to the right -->
+  <path d="M60 46 C 60 26, 74 14, 93 14"/>
+  <path d="M67 55 C 67 33, 82 23, 93 23"/>
+  <!-- End hook -->
+  <path d="M93 10 v17"/>
+  <!-- Graduations along the blade -->
+  <path d="M75.5 20.5 v6.6M84 17.2 v7.4" stroke-width="4"/>
+</svg>

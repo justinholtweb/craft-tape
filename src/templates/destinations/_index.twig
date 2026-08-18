@@ -1,0 +1,133 @@
+{% extends "_layouts/cp.twig" %}
+{% import "_includes/forms.twig" as forms %}
+
+{% set title = "Destinations"|t('tape') %}
+{% set selectedSubnavItem = 'destinations' %}
+
+{% if not readOnly %}
+    {% set actionButton %}
+        <a href="{{ url('tape/destinations/new') }}" class="btn submit add icon">{{ "New destination"|t('tape') }}</a>
+    {% endset %}
+{% endif %}
+
+{% block content %}
+    {% if readOnly %}
+        <blockquote class="note">
+            <p>{{ "Destinations are part of project config, so they can only be changed in an environment with admin changes allowed. Everything here is read-only."|t('tape') }}</p>
+        </blockquote>
+    {% endif %}
+
+    {% if destinations is empty %}
+        <div class="zilch">
+            <p>{{ "No destinations yet."|t('tape') }}</p>
+            <p class="light">{{ "A destination is one pixel or account — a Google Ads conversion ID, a Meta pixel, a GTM container. Two of the same platform is fine."|t('tape') }}</p>
+            {% if not readOnly %}
+                <a href="{{ url('tape/destinations/new') }}" class="btn submit">{{ "Add the first one"|t('tape') }}</a>
+            {% endif %}
+        </div>
+    {% else %}
+        <table class="data fullwidth">
+            <thead>
+                <tr>
+                    <th>{{ "Name"|t('tape') }}</th>
+                    <th>{{ "Platform"|t('tape') }}</th>
+                    <th>{{ "Consent"|t('tape') }}</th>
+                    <th>{{ "Sending"|t('tape') }}</th>
+                    <th>{{ "Conversions, last 7 days"|t('tape') }}</th>
+                    <th class="thin"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for destination in destinations %}
+                    {% set platform = platforms[destination.platform] ?? null %}
+                    {% set problems = destination.getProblems() %}
+                    {% set stats = health[destination.uid] ?? null %}
+                    <tr data-uid="{{ destination.uid }}">
+                        <td>
+                            <a href="{{ url('tape/destinations/' ~ destination.uid) }}">{{ destination.name }}</a>
+                            <code class="light">{{ destination.handle }}</code>
+                            {% if not destination.enabled %}
+                                <span class="status off"></span> <span class="light">{{ "Disabled"|t('tape') }}</span>
+                            {% elseif problems %}
+                                <ul class="errors">
+                                    {% for problem in problems %}<li>{{ problem }}</li>{% endfor %}
+                                </ul>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ platform ? platform.displayName() : destination.platform }}
+                            {% if platform and platform.requiresEdition() == 'pro' and not isPro %}
+                                <span class="light">— {{ "needs Pro"|t('tape') }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="light">{{ destination.consentCategory }}</td>
+                        <td>
+                            {% if destination.serverSideOnly %}
+                                {{ "Server only"|t('tape') }}
+                            {% elseif destination.serverSide %}
+                                {{ "Browser and server"|t('tape') }}
+                            {% else %}
+                                {{ "Browser"|t('tape') }}
+                            {% endif %}
+                        </td>
+                        <td class="light">
+                            {% if stats %}
+                                {{ "{n} sent"|t('tape', { n: (stats.sent ?? 0) + (stats.emitted ?? 0) }) }}
+                                {% if stats.failed ?? 0 %}
+                                    <span class="error">· {{ "{n} failed"|t('tape', { n: stats.failed }) }}</span>
+                                {% endif %}
+                            {% else %}
+                                {{ "None yet"|t('tape') }}
+                            {% endif %}
+                        </td>
+                        <td class="thin">
+                            {% if not readOnly %}
+                                <button type="button" class="btn small js-tape-test" data-uid="{{ destination.uid }}">{{ "Test"|t('tape') }}</button>
+                                <button type="button" class="delete icon js-tape-delete" data-uid="{{ destination.uid }}" data-name="{{ destination.name }}" title="{{ 'Delete'|t('app') }}"></button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <p class="light" style="margin-top: 1em;">
+            {{ "Only conversions are logged — a destination showing none may still be sending page views and product views perfectly well. The event log lists everything."|t('tape') }}
+        </p>
+
+        <p class="light">
+            {{ "“Test” sends a real event to the destination’s server-side API and prints the answer. It is the only thing that catches a revoked token or a retired API version — from a browser, those look exactly like success."|t('tape') }}
+        </p>
+    {% endif %}
+{% endblock %}
+
+{% js %}
+// Secondary actions post through Craft rather than through a form: this screen is already inside
+// one, and a nested form does not merely fail — it puts a second action input next to the page's
+// own, and Craft takes the last one.
+document.querySelectorAll('.js-tape-delete').forEach(function (button) {
+    button.addEventListener('click', function () {
+        if (!confirm(Craft.t('tape', 'Delete “{name}”? Events already sent are not affected.', { name: button.dataset.name }))) {
+            return;
+        }
+        Craft.sendActionRequest('POST', 'tape/destinations/delete', { data: { uid: button.dataset.uid } })
+            .then(function () { window.location.reload(); })
+            .catch(function (e) { Craft.cp.displayError(e.response && e.response.data ? e.response.data.message : 'Could not delete.'); });
+    });
+});
+
+document.querySelectorAll('.js-tape-test').forEach(function (button) {
+    button.addEventListener('click', function () {
+        button.classList.add('loading');
+        Craft.sendActionRequest('POST', 'tape/destinations/test', { data: { uid: button.dataset.uid } })
+            .then(function (response) {
+                var data = response.data;
+                if (data.ok) { Craft.cp.displayNotice(data.message); }
+                else if (data.skipped) { Craft.cp.displayNotice(data.message); }
+                else { Craft.cp.displayError(data.message); }
+            })
+            .catch(function () { Craft.cp.displayError(Craft.t('tape', 'The test request failed.')); })
+            .finally(function () { button.classList.remove('loading'); });
+    });
+});
+{% endjs %}

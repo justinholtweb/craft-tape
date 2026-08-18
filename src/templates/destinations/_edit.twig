@@ -1,0 +1,214 @@
+{% extends "_layouts/cp.twig" %}
+{% import "_includes/forms.twig" as forms %}
+
+{% set title = isNew ? "New destination"|t('tape') : destination.name %}
+{% set selectedSubnavItem = 'destinations' %}
+{% set crumbs = [{ label: "Destinations"|t('tape'), url: url('tape/destinations') }] %}
+{% set fullPageForm = not readOnly %}
+
+{% block content %}
+    {% if readOnly %}
+        <blockquote class="note">
+            <p>{{ "Read-only: destinations are project config, and admin changes are disabled in this environment."|t('tape') }}</p>
+        </blockquote>
+    {% endif %}
+
+    <input type="hidden" name="action" value="tape/destinations/save">
+    <input type="hidden" name="uid" value="{{ destination.uid }}">
+    <input type="hidden" name="platform" value="{{ destination.platform }}">
+    {{ redirectInput('tape/destinations') }}
+
+    <div class="readable" style="margin-bottom: 1.5rem;">
+        <p class="light">{{ platform.description() }}</p>
+    </div>
+
+    {{ forms.textField({
+        first: true,
+        label: "Name"|t('tape'),
+        id: 'name',
+        name: 'name',
+        value: destination.name,
+        errors: destination.getErrors('name'),
+        required: true,
+        disabled: readOnly,
+    }) }}
+
+    {{ forms.textField({
+        label: "Handle"|t('tape'),
+        instructions: "Used in the event log and in `only:` filters. Not shown to visitors."|t('tape'),
+        id: 'handle',
+        name: 'handle',
+        value: destination.handle,
+        errors: destination.getErrors('handle'),
+        class: 'code',
+        required: true,
+        disabled: readOnly,
+    }) }}
+
+    {{ forms.lightswitchField({
+        label: "Enabled"|t('tape'),
+        id: 'enabled',
+        name: 'enabled',
+        on: destination.enabled,
+        disabled: readOnly,
+    }) }}
+
+    <hr>
+
+    <h2>{{ platform.displayName() }} {{ "settings"|t('tape') }}</h2>
+
+    {% for key, field in platform.settingFields() %}
+        {% set value = destination.settings[key] ?? (field.default ?? null) %}
+        {% set config = {
+            label: field.label,
+            instructions: field.instructions ?? null,
+            id: 'settings-' ~ key,
+            name: 'settings[' ~ key ~ ']',
+            value: value,
+            placeholder: field.placeholder ?? null,
+            errors: destination.getErrors('settings.' ~ key),
+            disabled: readOnly,
+        } %}
+
+        {% if (field.type ?? 'text') == 'lightswitch' %}
+            {{ forms.lightswitchField(config|merge({ on: value ?? (field.default ?? false) })) }}
+        {% elseif (field.type ?? 'text') == 'select' %}
+            {{ forms.selectField(config|merge({ options: field.options })) }}
+        {% elseif (field.type ?? 'text') == 'textarea' %}
+            {{ forms.textareaField(config|merge({ rows: 6, class: field.class ?? null })) }}
+        {% elseif (field.type ?? 'text') == 'autosuggest' %}
+            {# Access tokens belong in an environment variable, and the autosuggest field is how
+               Craft tells everybody that without a paragraph of instructions. #}
+            {{ forms.autosuggestField(config|merge({ suggestEnvVars: true, class: 'code' })) }}
+        {% else %}
+            {{ forms.textField(config|merge({ class: 'code' })) }}
+        {% endif %}
+    {% endfor %}
+
+    <hr>
+
+    <h2>{{ "Consent"|t('tape') }}</h2>
+
+    {{ forms.selectField({
+        label: "Consent category"|t('tape'),
+        instructions: "Which consent signal has to be granted before this destination may load. Google’s own tags load ahead of an answer regardless and throttle themselves — that is what makes conversion modelling work."|t('tape'),
+        id: 'consentCategory',
+        name: 'consentCategory',
+        options: consentOptions,
+        value: destination.consentCategory,
+        disabled: readOnly,
+    }) }}
+
+    <hr>
+
+    <h2>{{ "Events"|t('tape') }}</h2>
+
+    {{ forms.checkboxField({
+        label: "Send every event this platform understands"|t('tape'),
+        id: 'events-all',
+        name: 'events[]',
+        value: '*',
+        checked: '*' in destination.events,
+        disabled: readOnly,
+        toggle: '!tape-event-list',
+    }) }}
+
+    <div id="tape-event-list" class="{{ '*' in destination.events ? 'hidden' : '' }}">
+        {% for option in eventOptions %}
+            {% set eventFields = platform.eventSettingFields(option.value) %}
+            <div class="tape-event">
+                {{ forms.checkbox({
+                    label: option.label,
+                    id: 'event-' ~ option.value,
+                    name: 'events[]',
+                    value: option.value,
+                    checked: option.value in destination.events,
+                    disabled: readOnly,
+                }) }}
+
+                {% for key, field in eventFields %}
+                    <label class="tape-event__label" for="{{ 'eventSettings-' ~ option.value ~ '-' ~ key }}">{{ field.label }}</label>
+                    {{ forms.text({
+                        id: 'eventSettings-' ~ option.value ~ '-' ~ key,
+                        name: 'eventSettings[' ~ option.value ~ '][' ~ key ~ ']',
+                        value: destination.eventSettings[option.value][key] ?? null,
+                        placeholder: field.placeholder ?? null,
+                        class: 'code',
+                        disabled: readOnly,
+                    }) }}
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+
+    {% if platform.eventSettingFields('purchase') %}
+        <blockquote class="note">
+            <p>{{ "This platform needs a per-event identifier — without one it silently discards the conversion. The boxes above are where they go, and you get them from the platform’s own conversion setup."|t('tape') }}</p>
+        </blockquote>
+    {% endif %}
+
+    {% if platform.supportsServerSide() %}
+        <hr>
+
+        <h2>{{ "Server-side"|t('tape') }} <span class="light">{{ "Pro"|t('tape') }}</span></h2>
+
+        {{ forms.lightswitchField({
+            label: "Also send from the server"|t('tape'),
+            instructions: "Sends the same event again through this platform’s conversions API, carrying the same event ID so the platform deduplicates rather than double-counts. This is what survives ad blockers — and it is what makes conversion recovery possible for this destination."|t('tape'),
+            id: 'serverSide',
+            name: 'serverSide',
+            on: destination.serverSide,
+            disabled: readOnly or not isPro,
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: "Server only"|t('tape'),
+            instructions: "Suppresses the browser tag entirely. Match quality drops — no click IDs, no browser context — so this is for a specific reason, not a default."|t('tape'),
+            id: 'serverSideOnly',
+            name: 'serverSideOnly',
+            on: destination.serverSideOnly,
+            disabled: readOnly or not isPro,
+        }) }}
+    {% endif %}
+
+    <hr>
+
+    <h2>{{ "Scope and testing"|t('tape') }}</h2>
+
+    {{ forms.checkboxSelectField({
+        label: "Sites"|t('tape'),
+        instructions: "Leave everything unticked for all sites."|t('tape'),
+        id: 'siteIds',
+        name: 'siteIds',
+        options: siteOptions,
+        values: destination.siteIds,
+        showAllOption: false,
+        disabled: readOnly,
+    }) }}
+
+    {{ forms.lightswitchField({
+        label: "Test mode"|t('tape'),
+        instructions: "Sends the platform’s debug flag where it has one, so events land in its test view instead of its reporting."|t('tape'),
+        id: 'testMode',
+        name: 'testMode',
+        on: destination.testMode,
+        disabled: readOnly,
+    }) }}
+
+    {{ forms.textField({
+        label: "Test event code"|t('tape'),
+        instructions: "Meta, TikTok and Snapchat each issue one in their events manager."|t('tape'),
+        id: 'testCode',
+        name: 'testCode',
+        value: destination.testCode,
+        class: 'code',
+        disabled: readOnly,
+    }) }}
+{% endblock %}
+
+{% css %}
+.tape-event { display: flex; align-items: center; gap: .75rem; padding: .25rem 0; flex-wrap: wrap; }
+.tape-event > .field, .tape-event input.text { margin: 0; }
+.tape-event .light { font-size: .8em; flex: 1 1 16rem; }
+.tape-event__label { font-size: .85em; color: var(--medium-text-color); }
+{% endcss %}

@@ -1,0 +1,140 @@
+{% extends "_layouts/cp.twig" %}
+{% import "_includes/forms.twig" as forms %}
+
+{% set title = isNew ? "New trigger"|t('tape') : trigger.name %}
+{% set selectedSubnavItem = 'triggers' %}
+{% set crumbs = [{ label: "Triggers"|t('tape'), url: url('tape/triggers') }] %}
+{% set fullPageForm = not readOnly %}
+
+{% block content %}
+    <input type="hidden" name="action" value="tape/triggers/save">
+    <input type="hidden" name="uid" value="{{ trigger.uid }}">
+    {{ redirectInput('tape/triggers') }}
+
+    {{ forms.textField({
+        first: true,
+        label: "Name"|t('tape'),
+        instructions: "For you, not for the platforms."|t('tape'),
+        id: 'name',
+        name: 'name',
+        value: trigger.name,
+        errors: trigger.getErrors('name'),
+        required: true,
+        disabled: readOnly,
+    }) }}
+
+    {{ forms.lightswitchField({
+        label: "Enabled"|t('tape'),
+        id: 'enabled',
+        name: 'enabled',
+        on: trigger.enabled,
+        disabled: readOnly,
+    }) }}
+
+    {{ forms.selectField({
+        label: "When"|t('tape'),
+        id: 'type',
+        name: 'type',
+        options: typeOptions,
+        value: trigger.type,
+        errors: trigger.getErrors('type'),
+        disabled: readOnly,
+    }) }}
+
+    {{ forms.textField({
+        label: "CSS selector"|t('tape'),
+        instructions: "For the click, form and visibility conditions. Clicks match the element or any ancestor of it, so `.btn-quote` catches a click on the icon inside the button."|t('tape'),
+        id: 'selector',
+        name: 'selector',
+        value: trigger.selector,
+        errors: trigger.getErrors('selector'),
+        class: 'code',
+        placeholder: '.contact-form, #quote-button',
+        disabled: readOnly,
+    }) }}
+
+    {{ forms.textField({
+        label: "Thresholds"|t('tape'),
+        instructions: "For scroll depth, a comma-separated list of percentages — `25, 50, 75, 90`. Each fires its own event. For time on page, a number of seconds."|t('tape'),
+        id: 'threshold',
+        name: 'threshold',
+        value: trigger.threshold,
+        errors: trigger.getErrors('threshold'),
+        class: 'code',
+        placeholder: '25, 50, 75',
+        disabled: readOnly,
+    }) }}
+
+    <hr>
+
+    {{ forms.selectField({
+        label: "Event"|t('tape'),
+        instructions: "What gets sent. Each destination maps this into its own vocabulary — `generate_lead` becomes Meta’s `Lead`, TikTok’s `SubmitForm`, and a Google Ads conversion if you have given it a label."|t('tape'),
+        id: 'event',
+        name: 'event',
+        options: eventOptions,
+        value: trigger.event,
+        errors: trigger.getErrors('event'),
+        disabled: readOnly,
+    }) }}
+
+    {{ forms.textField({
+        label: "Value"|t('tape'),
+        instructions: "What one of these is worth. Set here rather than in the browser, deliberately — a value a visitor could supply is a value a visitor could inflate."|t('tape'),
+        id: 'value',
+        name: 'value',
+        value: trigger.value,
+        errors: trigger.getErrors('value'),
+        size: 8,
+        disabled: readOnly,
+    }) }}
+
+    {{ forms.textField({
+        label: "Currency"|t('tape'),
+        id: 'currency',
+        name: 'currency',
+        value: trigger.currency,
+        errors: trigger.getErrors('currency'),
+        size: 6,
+        placeholder: 'GBP',
+        disabled: readOnly,
+    }) }}
+
+    {{ forms.selectField({
+        label: "Repeat"|t('tape'),
+        id: 'once',
+        name: 'once',
+        options: [
+            { label: "Once per session"|t('tape'), value: 'session' },
+            { label: "Once per page"|t('tape'), value: 'page' },
+            { label: "Every time"|t('tape'), value: 'never' },
+        ],
+        value: trigger.once,
+        disabled: readOnly,
+    }) }}
+
+    <hr>
+
+    {{ forms.textareaField({
+        label: "Only on these pages"|t('tape'),
+        instructions: "One URI pattern per line, `*` as a wildcard. Blank means every page."|t('tape'),
+        id: 'uris',
+        name: 'uris',
+        value: trigger.uris|join("\n"),
+        class: 'code',
+        rows: 4,
+        placeholder: 'contact\nservices/*',
+        disabled: readOnly,
+    }) }}
+
+    {{ forms.checkboxSelectField({
+        label: "Sites"|t('tape'),
+        instructions: "Leave everything unticked for all sites."|t('tape'),
+        id: 'siteIds',
+        name: 'siteIds',
+        options: siteOptions,
+        values: trigger.siteIds,
+        showAllOption: false,
+        disabled: readOnly,
+    }) }}
+{% endblock %}

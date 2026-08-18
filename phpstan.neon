@@ -1,0 +1,14 @@
+includes:
+    - vendor/craftcms/phpstan/phpstan.neon
+
+parameters:
+    level: 4
+    paths:
+        - src
+    ignoreErrors:
+        # Craft Commerce is a suggested dependency, not a required one. Everything that touches it is
+        # confined to services/Commerce behind isInstalled() and typed `mixed` on purpose, so phpstan
+        # cannot see the classes and should not be asked to.
+        -
+            message: '#craft\\commerce#'
+            reportUnmatched: false
