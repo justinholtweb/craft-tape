@@ -5,7 +5,14 @@
 Tape is conversion tracking for Craft: a dozen advertising and analytics pixels, the Commerce
 ecommerce funnel, Consent Mode v2, server-side Conversions APIs, and recovery of the conversions
 browsers lose. It is the Craft answer to WooCommerce's "pixel manager" plugins. Distributed as
-`justinholtweb/craft-tape`. Lite (free) + Pro editions.
+`justinholtweb/craft-tape`. Lite (free) + Pro editions — **Pro $99, renewal $59/year**.
+
+The marketing site is **justinholt.com/plugins/craft-tape**, part of the justinholt.com install,
+not a standalone site. Its docs are this repo's `docs/*.md` (front matter required; `README.md` is
+skipped), synced with `ddev exec php craft pluginsite/docs/sync craft-tape` from `~/Sites/justinholt`.
+Plugin Store promos are `promos/` — `./build.sh`, seven JPEGs. A price change touches the seed
+`justinholt/scripts/seed/plugin-pages/craft-tape.json`, README, `docs/editions.md`,
+`docs/installation.md`, `docs/faq.md`, the promo cover, and the Craft Console listing.
 
 ## Tech Stack
 
