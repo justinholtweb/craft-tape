@@ -2021,7 +2021,21 @@ check('a matching event reaches the payload with a finished payload per destinat
         : json_encode($first);
 });
 
-check('a visitor’s string in the payload cannot close the script element', function() use ($plugin) {
+check('a visitor’s string in the payload cannot close the script element', function() use ($plugin, $run, &$createdDestinations) {
+    // Its own destination: GA4 maps `search`, and the check must not lean on whatever else happens
+    // to be configured in the harness.
+    $destination = new Destination([
+        'handle' => 'xss' . $run,
+        'name' => 'XSS',
+        'platform' => 'ga4',
+        'settings' => ['measurementId' => 'G-XSS1234567'],
+    ]);
+
+    if (!$plugin->destinations->saveDestination($destination)) {
+        return json_encode($destination->getErrors());
+    }
+
+    $createdDestinations[] = $destination->uid;
     $plugin->events->clearQueue();
     $plugin->tags->invalidateCache();
 
@@ -2037,12 +2051,13 @@ check('a visitor’s string in the payload cannot close the script element', fun
 
     $decoded = json_decode(Tags::scriptJson(['s' => '</script>&']), true);
 
-    return str_contains($head, 'window.__TAPE__')
-        && str_contains($head, 'alert(1)')
-        && !str_contains($head, '</script><script>alert')
-        && ($decoded['s'] ?? null) === '</script>&'
-            ? true
-            : 'the payload ends the <script> early';
+    if (!str_contains($head, 'window.__TAPE__') || !str_contains($head, 'alert(1)')) {
+        return 'the search event never reached the head: ' . mb_substr(strip_tags($head), 0, 200);
+    }
+
+    return !str_contains($head, '</script><script>alert') && ($decoded['s'] ?? null) === '</script>&'
+        ? true
+        : 'the payload ends the <script> early';
 });
 
 check('a custom snippet is wrapped in an inert template when consent is in play', function() use ($plugin, $run, &$createdDestinations) {
@@ -2172,6 +2187,16 @@ check('the plugin nav badge counts broken destinations without throwing', functi
 });
 
 // ──────────────────────────────────────────────────────────────────────────────────────────────
+check('the consent mirror cookie is read raw, because JavaScript cannot sign it', function() {
+    $source = file_get_contents(dirname(__DIR__, 2) . '/src/services/Consent.php');
+
+    // Craft validates cookies by default and silently drops any without its hash — which is every
+    // cookie the runtime writes. Read through getCookies(), every server-side send is `skipped`.
+    return str_contains($source, 'getRawCookies()') && !str_contains($source, '->getCookies()')
+        ? true
+        : 'the consent cookie is read through the validated collection';
+});
+
 section('Settings');
 
 check('an editable-table row list is flattened to a plain list of strings', function() {

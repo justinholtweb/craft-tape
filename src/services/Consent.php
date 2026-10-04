@@ -263,7 +263,11 @@ class Consent extends Component
         }
 
         $name = Plugin::getInstance()->getSettings()->consentCookieName;
-        $value = $request->getCookies()->getValue($name);
+        // Raw, not `getCookies()`: the runtime writes this cookie from JavaScript, so it carries no
+        // Craft validation hash and the validated collection silently drops it. It holds seven
+        // flags and is decoded strictly, so there is nothing a forged one could do that the
+        // visitor could not do by clicking the banner.
+        $value = $request->getRawCookies()->getValue($name);
 
         return is_string($value) && $value !== '' ? $this->decode($value) : null;
     }

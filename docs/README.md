@@ -81,6 +81,41 @@ To queue calls before the runtime has loaded:
 <script>window.tape = window.tape || []; tape.push(['track', 'view_item', { id: 42 }]);</script>
 ```
 
+### Throttling
+
+The front-end `map` and `trigger` endpoints are anonymous and CSRF-exempt, so each acts on at most
+120 and 30 requests per IP per minute (`services\Events::ANONYMOUS_LIMITS`). Over the limit they
+answer as if nothing were configured and log one warning. The count is keyed on Craft's
+`getUserIP()`, so behind a proxy or CDN set the `ipHeaders` and `trustedHosts` general config
+settings. Otherwise every visitor shares the proxy's IP and the whole site shares one allowance.
+
+## Consent
+
+`consentCmp: 'custom'` evaluates `consentExpression` with `new Function`, so a strict
+Content-Security-Policy needs `'unsafe-eval'` in `script-src` for it, or it never answers. Prefer a
+named CMP, or call `tape.consent.update()` from the banner's own code. Neither needs `eval`.
+
+## Webhooks
+
+The body is JSON encoded once and sent as exactly those bytes. With a signing secret set, each
+request carries `X-Tape-Signature: sha256=<hex HMAC-SHA256 of the raw body, keyed with the secret>`.
+Verify against the **raw** body as received. A body that was parsed and re-encoded can escape
+slashes or Unicode differently, and then the signature fails.
+
+```php
+$raw = file_get_contents('php://input');
+$ok = hash_equals('sha256=' . hash_hmac('sha256', $raw, $secret), $_SERVER['HTTP_X_TAPE_SIGNATURE'] ?? '');
+```
+
+```js
+// express.raw({ type: 'application/json' }) on the route, so req.body is a Buffer
+const expected = Buffer.from('sha256=' + crypto.createHmac('sha256', secret).update(req.body).digest('hex'));
+const given = Buffer.from(req.get('X-Tape-Signature') || '');
+const ok = given.length === expected.length && crypto.timingSafeEqual(given, expected);
+```
+
+Use `eventId` as the idempotency key. A recovered purchase arrives with the same ID as the original.
+
 ## Config file
 
 `config/tape.php` overrides any setting, per environment:

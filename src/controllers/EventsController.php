@@ -31,6 +31,9 @@ use yii\web\Response;
  */
 class EventsController extends Controller
 {
+    /** Keys the map endpoint reads itself, wherever in the body they arrive. */
+    private const LIFTED_KEYS = ['id', 'ids', 'qty', 'searchTerm', 'listId', 'listName'];
+
     protected array|int|bool $allowAnonymous = true;
 
     public $enableCsrfValidation = false;
@@ -69,11 +72,18 @@ class EventsController extends Controller
             'siteId' => Craft::$app->getSites()->getCurrentSite()->id,
         ]);
 
-        $event->searchTerm = $this->text($body['searchTerm'] ?? null, 200);
-        $event->listId = $this->text($body['listId'] ?? null, 100);
-        $event->listName = $this->text($body['listName'] ?? null, 200);
-        $event->params = $this->params($body['params'] ?? []);
-        $event->items = $this->resolveItems($body);
+        // `tape.track(name, {id, qty, searchTerm, …})` posts everything under `params`; the same
+        // keys at the top level are accepted too. Either way they are lifted out here rather than
+        // forwarded as free-form parameters.
+        $params = is_array($body['params'] ?? null) ? $body['params'] : [];
+        $known = array_intersect_key($params, array_flip(self::LIFTED_KEYS)) + $body;
+        $params = array_diff_key($params, array_flip(self::LIFTED_KEYS));
+
+        $event->searchTerm = $this->text($known['searchTerm'] ?? null, 200);
+        $event->listId = $this->text($known['listId'] ?? null, 100);
+        $event->listName = $this->text($known['listName'] ?? null, 200);
+        $event->params = $this->params($params);
+        $event->items = $this->resolveItems($known);
         $event->userData = $plugin->events->getUserData();
 
         $result = $plugin->events->process($event);

@@ -488,7 +488,17 @@ check('the order skipped for consent is never recovered', function() use ($plugi
 
     $skipped = Order::find()->isCompleted(true)->email("skip-$run@example.test")->one();
 
-    return $skipped !== null && !in_array($skipped->id, $ids, true)
+    // Its browser row is `emitted` and never confirmed, exactly like a lost tag. The unconfirmed
+    // sweep has to tell the two apart, and only the `skipped` server row can. A cutoff in the
+    // future makes the row old enough to be swept.
+    $unconfirmed = array_map('intval', array_column(
+        $plugin->ledger->getUnconfirmedConversions(new DateTime('+1 hour'), 1000),
+        'orderId',
+    ));
+
+    return $skipped !== null
+        && !in_array($skipped->id, $ids, true)
+        && !in_array($skipped->id, $unconfirmed, true)
         ? true
         : 'recovery repairs failures; it does not override a decision';
 });

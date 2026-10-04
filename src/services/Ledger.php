@@ -265,6 +265,15 @@ class Ledger extends Component
             ->andWhere(['d.channel' => [self::CHANNEL_SERVER, self::CHANNEL_RECOVERY]])
             ->andWhere(['d.status' => self::STATUS_SENT]);
 
+        // A browser row the runtime never confirmed is also what a *held* tag looks like: consent
+        // was denied, so the payload waited and nothing reported back. The server half recorded
+        // that decision as `skipped`, and recovering the order would override it.
+        $decided = (new Query())
+            ->select(['orderId'])
+            ->from(['{{%tape_events}} s'])
+            ->where(['s.eventName' => TrackingEvent::PURCHASE])
+            ->andWhere(['s.status' => self::STATUS_SKIPPED]);
+
         return (new Query())
             ->from(['{{%tape_events}}'])
             ->where([
@@ -275,6 +284,7 @@ class Ledger extends Component
             ->andWhere(['not', ['orderId' => null]])
             ->andWhere(['<', 'occurredAt', Db::prepareDateForDb($before)])
             ->andWhere(['not in', 'orderId', $delivered])
+            ->andWhere(['not in', 'orderId', $decided])
             ->orderBy(['occurredAt' => SORT_ASC])
             ->limit($limit)
             ->all();
