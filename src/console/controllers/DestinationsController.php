@@ -139,7 +139,7 @@ class DestinationsController extends Controller
         }
         $this->line('Auto-injection', $settings->autoInject ? 'on' : 'off — templates must call tape.head() and tape.body()');
         $this->line('Consent mode', $settings->consentMode ? 'on, source: ' . $settings->consentSource : 'off');
-        $this->line('Enhanced conversions', $settings->enhancedConversions ? 'on' : 'off');
+        $this->line('Enhanced conversions', $plugin->enhancedConversions() ? 'on' : ($settings->enhancedConversions ? 'off — needs Pro' : 'off'));
         $this->line('Recovery', $settings->recoveryEnabled && $plugin->isPro() ? 'on, ' . $settings->recoveryDelayMinutes . ' minute delay' : 'off');
         $this->line('Product IDs', $settings->productIdSource . ' — these must match your merchant feed');
 

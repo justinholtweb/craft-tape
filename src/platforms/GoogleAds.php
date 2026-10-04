@@ -128,7 +128,7 @@ class GoogleAds extends GtagPlatform
     protected function configParams(Destination $destination): array
     {
         return [
-            'allow_enhanced_conversions' => (bool)Plugin::getInstance()->getSettings()->enhancedConversions,
+            'allow_enhanced_conversions' => (bool)Plugin::getInstance()->enhancedConversions(),
         ];
     }
 
@@ -147,7 +147,7 @@ class GoogleAds extends GtagPlatform
         // Enhanced conversions have to be set *before* the conversion fires, and they are set on
         // the tag rather than passed with the event — so this is an ordering constraint, not a
         // parameter, and it is the reason mapEvent returns a list rather than one call.
-        if ($label !== null && Plugin::getInstance()->getSettings()->enhancedConversions) {
+        if ($label !== null && Plugin::getInstance()->enhancedConversions()) {
             $userData = Identity::googleUserData($event->userData);
 
             if ($userData !== []) {

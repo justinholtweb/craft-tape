@@ -11,7 +11,11 @@
         </p>
     </div>
 
-    {% if not commerce %}
+    {% if locked ?? false %}
+        <blockquote class="note warning">
+            <p>{{ "The accuracy report needs Tape Pro. Every conversion is still being recorded, so the report fills in from the day you sent the first one the moment the licence is upgraded."|t('tape') }}</p>
+        </blockquote>
+    {% elseif not commerce %}
         <blockquote class="note">
             <p>{{ "This report compares conversions against Commerce orders, so it needs Craft Commerce. Everything else in Tape works without it."|t('tape') }}</p>
         </blockquote>

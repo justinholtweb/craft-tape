@@ -125,7 +125,7 @@ class Meta extends BasePlatform
 
         $matching = [];
 
-        if ($destination->setting('advancedMatching', true) && Plugin::getInstance()->getSettings()->enhancedConversions) {
+        if ($destination->setting('advancedMatching', true) && Plugin::getInstance()->enhancedConversions()) {
             $matching = Identity::metaUserData($context['userData'] ?? null);
         }
 

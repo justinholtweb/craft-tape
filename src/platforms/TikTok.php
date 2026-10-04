@@ -100,7 +100,7 @@ class TikTok extends BasePlatform
             'loader' => 'ttq',
             'config' => [
                 'id' => $pixelId,
-                'identify' => Plugin::getInstance()->getSettings()->enhancedConversions
+                'identify' => Plugin::getInstance()->enhancedConversions()
                     ? Identity::tiktokUserData($context['userData'] ?? null)
                     : [],
             ],

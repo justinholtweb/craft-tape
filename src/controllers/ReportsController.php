@@ -66,6 +66,11 @@ class ReportsController extends Controller
     public function actionAccuracy(): Response
     {
         $plugin = Plugin::getInstance();
+
+        if (!$plugin->isPro()) {
+            return $this->renderTemplate('tape/reports/_accuracy', ['locked' => true, 'commerce' => $plugin->commerce->isInstalled()]);
+        }
+
         $days = max(1, min(90, (int)Craft::$app->getRequest()->getQueryParam('days', 30)));
         $destinationUid = Craft::$app->getRequest()->getQueryParam('destination') ?: null;
 
@@ -87,7 +92,7 @@ class ReportsController extends Controller
             'broken' => $plugin->destinations->getBrokenDestinations(),
             'unrecoverable' => $plugin->recovery->getUnrecoverableDestinations(),
             'commerce' => $plugin->commerce->isInstalled(),
-            'recoveryEnabled' => $plugin->getSettings()->recoveryEnabled && $plugin->isPro(),
+            'recoveryEnabled' => $plugin->getSettings()->recoveryEnabled,
         ]);
     }
 

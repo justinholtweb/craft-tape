@@ -93,7 +93,7 @@ class Snapchat extends BasePlatform
             'loader' => 'snaptr',
             'config' => [
                 'id' => $pixelId,
-                'matching' => Plugin::getInstance()->getSettings()->enhancedConversions
+                'matching' => Plugin::getInstance()->enhancedConversions()
                     ? Identity::snapchatUserData($context['userData'] ?? null)
                     : [],
             ],

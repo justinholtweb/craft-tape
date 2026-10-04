@@ -128,6 +128,15 @@ class Plugin extends BasePlugin
         return $this->is(self::EDITION_PRO, '>=');
     }
 
+    /**
+     * Whether hashed customer data goes out with conversions — Google's enhanced conversions,
+     * Meta's advanced matching and the rest. A Pro feature; the setting alone is not enough.
+     */
+    public function enhancedConversions(): bool
+    {
+        return $this->isPro() && $this->getSettings()->enhancedConversions;
+    }
+
     public function getCpNavItem(): ?array
     {
         $item = parent::getCpNavItem();

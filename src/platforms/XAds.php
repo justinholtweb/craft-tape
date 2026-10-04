@@ -105,7 +105,7 @@ class XAds extends BasePlatform
             ]),
         ];
 
-        if (Plugin::getInstance()->getSettings()->enhancedConversions) {
+        if (Plugin::getInstance()->enhancedConversions()) {
             $payload += Identity::xUserData($event->userData);
         }
 

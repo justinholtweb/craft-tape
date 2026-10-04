@@ -256,6 +256,21 @@ check('every required setting has a field definition', function() use ($platform
     return true;
 });
 
+check('Lite sends no hashed customer data, whatever the setting says', function() use ($plugin) {
+    $plugin->getSettings()->enhancedConversions = true;
+    $destination = destinationFor('meta', ['pixelId' => '123456789012345']);
+    $userData = new UserData(['email' => 'ada@example.com']);
+
+    Craft::$app->getPlugins()->switchEdition('tape', Plugin::EDITION_LITE);
+    $lite = [$plugin->enhancedConversions(), $plugin->platforms->getPlatform('meta')->boot($destination, Consent::allGranted(), ['userData' => $userData])['config']['matching'] ?? null];
+    Craft::$app->getPlugins()->switchEdition('tape', Plugin::EDITION_PRO);
+    $pro = [$plugin->enhancedConversions(), $plugin->platforms->getPlatform('meta')->boot($destination, Consent::allGranted(), ['userData' => $userData])['config']['matching'] ?? null];
+
+    return $lite[0] === false && $lite[1] === [] && $pro[0] === true && $pro[1] !== []
+        ? true
+        : json_encode(['lite' => $lite, 'pro' => $pro]);
+});
+
 check('Lite hides the Pro platforms but the registry still lists them', function() use ($plugin) {
     Craft::$app->getPlugins()->switchEdition('tape', Plugin::EDITION_LITE);
     $available = array_keys($plugin->platforms->getAvailablePlatforms());

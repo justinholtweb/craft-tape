@@ -86,7 +86,7 @@ class MicrosoftAds extends BasePlatform
 
         $enhanced = [];
 
-        if (Plugin::getInstance()->getSettings()->enhancedConversions) {
+        if (Plugin::getInstance()->enhancedConversions()) {
             $enhanced = Identity::microsoftUserData($context['userData'] ?? null);
         }
 

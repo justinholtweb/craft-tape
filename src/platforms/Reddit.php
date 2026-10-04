@@ -101,7 +101,7 @@ class Reddit extends BasePlatform
             'loader' => 'rdt',
             'config' => [
                 'id' => $pixelId,
-                'matching' => Plugin::getInstance()->getSettings()->enhancedConversions
+                'matching' => Plugin::getInstance()->enhancedConversions()
                     ? Identity::redditUserData($context['userData'] ?? null)
                     : [],
             ],

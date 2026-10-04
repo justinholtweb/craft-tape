@@ -95,7 +95,7 @@ class Pinterest extends BasePlatform
             'loader' => 'pintrk',
             'config' => [
                 'id' => $tagId,
-                'matching' => Plugin::getInstance()->getSettings()->enhancedConversions
+                'matching' => Plugin::getInstance()->enhancedConversions()
                     ? Identity::pinterestUserData($context['userData'] ?? null)
                     : [],
             ],

@@ -368,4 +368,5 @@ return [
     'Only conversions are logged — a destination showing none may still be sending page views and product views perfectly well. The event log lists everything.' => 'Only conversions are logged — a destination showing none may still be sending page views and product views perfectly well. The event log lists everything.',
     'Purchases and refunds are tracked from Commerce orders, never from a trigger.' => 'Purchases and refunds are tracked from Commerce orders, never from a trigger.',
     'Use a standard event, or a custom name that does not start with `ga_`, `google_` or `firebase_`.' => 'Use a standard event, or a custom name that does not start with `ga_`, `google_` or `firebase_`.',
+    'The accuracy report needs Tape Pro. Every conversion is still being recorded, so the report fills in from the day you sent the first one the moment the licence is upgraded.' => 'The accuracy report needs Tape Pro. Every conversion is still being recorded, so the report fills in from the day you sent the first one the moment the licence is upgraded.',
 ];

@@ -300,9 +300,10 @@ class Events extends Component
             $user->sourceUrl = $request->getAbsoluteUrl();
         }
 
-        $settings = Plugin::getInstance()->getSettings();
+        $plugin = Plugin::getInstance();
+        $settings = $plugin->getSettings();
 
-        if ($settings->enhancedConversions && ($settings->excludeLoggedIn || $settings->excludeUserGroups !== [])) {
+        if ($plugin->enhancedConversions() && ($settings->excludeLoggedIn || $settings->excludeUserGroups !== [])) {
             $identity = Craft::$app->getUser()->getIdentity();
 
             if ($identity instanceof User) {
