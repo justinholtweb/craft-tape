@@ -290,6 +290,28 @@ class Ledger extends Component
             ->all();
     }
 
+    /**
+     * Whether this order's purchase reached any platform, which is what a refund for it hangs on.
+     *
+     * False when any purchase row was skipped — the visitor's consent decision, which a refund must
+     * not override — and when there is no purchase row at all, because then there is nothing on
+     * the platform's side for a refund to reverse.
+     */
+    public function purchaseWasSent(int $orderId): bool
+    {
+        $statuses = (new Query())
+            ->select(['status'])
+            ->from(['{{%tape_events}}'])
+            ->where(['eventName' => TrackingEvent::PURCHASE, 'orderId' => $orderId])
+            ->column();
+
+        if ($statuses === [] || in_array(self::STATUS_SKIPPED, $statuses, true)) {
+            return false;
+        }
+
+        return array_intersect($statuses, [self::STATUS_SENT, self::STATUS_EMITTED]) !== [];
+    }
+
     /** @return array<int, array<string, mixed>> Ledger rows for the events screen. */
     public function getRecent(array $criteria = [], int $limit = 100, int $offset = 0): array
     {

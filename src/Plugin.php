@@ -105,6 +105,10 @@ class Plugin extends BasePlugin
         $this->registerCpRoutes();
         $this->registerGarbageCollection();
 
+        // Before the request-type checks: a refund is issued from the control panel, a console
+        // command or a gateway's webhook — never from a page anybody is looking at.
+        $this->registerRefundHook();
+
         if (Craft::$app->getRequest()->getIsConsoleRequest()) {
             return;
         }
@@ -327,6 +331,8 @@ class Plugin extends BasePlugin
         'purchase' => ['EVENT_AFTER_COMPLETE_ORDER'],
         'add_to_cart' => ['EVENT_AFTER_APPLY_ADD_LINE_ITEM', 'EVENT_AFTER_ADD_LINE_ITEM', 'EVENT_AFTER_ADD_LINE_ITEM_TO_ORDER'],
         'remove_from_cart' => ['EVENT_AFTER_APPLY_REMOVE_LINE_ITEM', 'EVENT_AFTER_REMOVE_LINE_ITEM', 'EVENT_AFTER_REMOVE_LINE_ITEM_FROM_ORDER'],
+        // Not on the order: a refund is a transaction, and Commerce announces it from Payments.
+        'refund' => ['craft\\commerce\\services\\Payments::EVENT_AFTER_REFUND_TRANSACTION'],
     ];
 
     /**
@@ -376,12 +382,35 @@ class Plugin extends BasePlugin
         }
     }
 
+    /**
+     * Sends a refund server-side the moment Commerce records one.
+     *
+     * Only the server half exists — there is no page — and only when the purchase it reverses was
+     * itself sent. Consent is taken from that purchase's ledger rows rather than from this request,
+     * which is an administrator's, not the customer's.
+     */
+    private function registerRefundHook(): void
+    {
+        if (!$this->getSettings()->autoTrackCommerce || !$this->commerce->isInstalled()) {
+            return;
+        }
+
+        $this->onCommerceEvent('refund', function(Event $event) {
+            try {
+                $this->commerce->trackRefund($event);
+            } catch (Throwable $e) {
+                Craft::error('Tape could not track a refund: ' . $e->getMessage(), self::LOG_CATEGORY);
+            }
+        });
+    }
+
     private function onCommerceEvent(string $step, callable $handler): void
     {
-        $class = \craft\commerce\elements\Order::class;
         $this->commerceHooks[$step] = null;
 
-        foreach (self::COMMERCE_EVENT_CANDIDATES[$step] as $constant) {
+        foreach (self::COMMERCE_EVENT_CANDIDATES[$step] as $candidate) {
+            [$class, $constant] = $this->commerceEventCandidate($candidate);
+
             if (!defined("$class::$constant")) {
                 continue;
             }
@@ -424,13 +453,14 @@ class Plugin extends BasePlugin
             return [];
         }
 
-        $class = \craft\commerce\elements\Order::class;
         $resolved = [];
 
         foreach (self::COMMERCE_EVENT_CANDIDATES as $step => $candidates) {
             $resolved[$step] = null;
 
-            foreach ($candidates as $constant) {
+            foreach ($candidates as $candidate) {
+                [$class, $constant] = $this->commerceEventCandidate($candidate);
+
                 if (defined("$class::$constant")) {
                     $resolved[$step] = constant("$class::$constant");
                     break;
@@ -439,6 +469,22 @@ class Plugin extends BasePlugin
         }
 
         return $resolved;
+    }
+
+    /**
+     * A candidate's class and constant. A bare constant is the order's.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function commerceEventCandidate(string $candidate): array
+    {
+        if (str_contains($candidate, '::')) {
+            [$class, $constant] = explode('::', $candidate, 2);
+
+            return [$class, $constant];
+        }
+
+        return [\craft\commerce\elements\Order::class, $candidate];
     }
 
     // ── Events that have to survive a redirect ──────────────────────────────────────────────

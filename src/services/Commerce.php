@@ -210,6 +210,61 @@ class Commerce extends Component
         ]);
     }
 
+    /**
+     * Sends the server-side half of a refund Commerce has just recorded.
+     *
+     * Gated on the purchase it reverses, through the ledger. A refund for a purchase no platform
+     * ever counted would subtract revenue that was never added, and a refund for one the visitor
+     * withheld consent from would send what they declined — so both are recorded as `skipped`
+     * rather than sent. A partial refund carries its amount and no items, which is how GA4 tells
+     * the two apart.
+     *
+     * @param mixed $event A `craft\commerce\events\RefundTransactionEvent`.
+     */
+    public function trackRefund(mixed $event): void
+    {
+        $refund = $event->refundTransaction ?? null;
+
+        if ($refund === null || ($refund->status ?? null) !== 'success') {
+            return;
+        }
+
+        $order = $refund->getOrder();
+
+        if ($order === null || !$order->isCompleted) {
+            return;
+        }
+
+        $plugin = Plugin::getInstance();
+        $tracking = $this->eventFromOrder($order, TrackingEvent::REFUND);
+        // `amount`, in the order's currency like the purchase it reverses — not `paymentAmount`,
+        // which is in whatever currency the customer happened to pay in.
+        $amount = abs((float)($refund->amount ?? $event->amount ?? 0));
+
+        if ($amount <= 0) {
+            return;
+        }
+
+        $refundId = (string)($refund->hash ?? $refund->id);
+        $isFull = abs($amount - abs((float)$order->getTotalPrice())) < 0.005;
+
+        $tracking->source = TrackingEvent::SOURCE_SERVER;
+        $tracking->value = round($amount, 4);
+        $tracking->params['refund_id'] = $refundId;
+        $tracking->eventId = $this->conversionEventId($order, TrackingEvent::REFUND . ':' . $refundId);
+
+        if (!$isFull) {
+            $tracking->items = [];
+            $tracking->tax = null;
+            $tracking->shipping = null;
+        }
+
+        $plugin->events->process($tracking, [
+            'record' => false,
+            'serverConsent' => $plugin->ledger->purchaseWasSent((int)$order->id),
+        ]);
+    }
+
     /** @param mixed $order A `craft\commerce\elements\Order`. */
     public function userDataFromOrder(mixed $order): UserData
     {

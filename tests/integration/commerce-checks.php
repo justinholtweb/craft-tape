@@ -163,7 +163,10 @@ function makeOrder(array $quantities, string $email, ?DateTime $orderedAt = null
 
 echo "\nTape Commerce checks — run $run\n";
 
-$variants = Variant::find()->status(null)->limit(2)->all();
+// Enabled, priced and in a fixed order. Whatever the harness happens to list first may be a disabled
+// variant, which Commerce refuses as a line item without saying so — a one-item order and a check
+// that fails depending on what other plugins' tests left behind.
+$variants = Variant::find()->price('> 0')->orderBy(['elements.id' => SORT_ASC])->limit(2)->all();
 
 if (count($variants) < 2) {
     echo "  ! this harness has fewer than two Commerce variants; nothing to test against\n";
@@ -193,12 +196,16 @@ check('every funnel step resolved to a real Commerce event', function() use ($pl
     return true;
 });
 
-check('the resolved event names exist on the Order class', function() use ($plugin) {
-    $published = array_values((new ReflectionClass(Order::class))->getConstants());
+check('the resolved event names exist on the class that publishes them', function() use ($plugin) {
+    // Refunds are announced by Payments; everything else by the order.
+    $published = array_merge(
+        array_values((new ReflectionClass(Order::class))->getConstants()),
+        array_values((new ReflectionClass(\craft\commerce\services\Payments::class))->getConstants()),
+    );
 
     foreach ($plugin->resolveCommerceHooks() as $step => $event) {
         if (!in_array($event, $published, true)) {
-            return "“{$event}” is not a Commerce Order event";
+            return "“{$event}” is not a Commerce event";
         }
     }
 
@@ -434,6 +441,136 @@ check('a purchase with consent withheld is recorded as skipped, not sent', funct
         && ($rows[0]['status'] ?? null) === Ledger::STATUS_SKIPPED
             ? true
             : json_encode($rows);
+});
+
+// ──────────────────────────────────────────────────────────────────────────────────────────────
+section('Refunds');
+
+/** A stand-in for `craft\commerce\events\RefundTransactionEvent` — the harness has no gateway to refund through. */
+function refundEvent(Order $order, float $amount, string $hash, string $status = 'success'): object
+{
+    $refund = new class($order, $amount, $hash, $status) {
+        public function __construct(private Order $order, public float $amount, public string $hash, public string $status)
+        {
+        }
+
+        public function getOrder(): Order
+        {
+            return $this->order;
+        }
+    };
+
+    return (object)['refundTransaction' => $refund, 'amount' => $amount];
+}
+
+$refundRequests = static fn(CountingTransport $transport, int $since): array => array_values(array_filter(
+    array_slice($transport->requests, $since),
+    static fn(array $request) => str_contains($request['url'], 'mp/collect')
+        && ($request['body']['events'][0]['name'] ?? null) === 'refund',
+));
+
+check('Commerce refunds are wired to a hook that exists', function() use ($plugin) {
+    $hooks = $plugin->resolveCommerceHooks();
+
+    return ($hooks['refund'] ?? null) === 'afterRefundTransaction' ? true : json_encode($hooks);
+});
+
+check('a GA4 destination with the Measurement Protocol is set up', function() use ($plugin, $run, &$destinationUids, &$ga4Uid) {
+    $destination = new Destination([
+        'handle' => 'cga4' . $run,
+        'name' => 'Commerce GA4 ' . $run,
+        'platform' => 'ga4',
+        'settings' => ['measurementId' => 'G-REFUND1234', 'apiSecret' => 'test-secret'],
+        'serverSide' => true,
+    ]);
+
+    if (!$plugin->destinations->saveDestination($destination)) {
+        return json_encode($destination->getErrors());
+    }
+
+    $destinationUids[] = $ga4Uid = $destination->uid;
+
+    return true;
+});
+
+check('a full refund of a sent purchase goes to GA4 with its transaction and items', function() use ($plugin, $small, $run, $transport, $refundRequests, &$ga4Uid, &$orderIds, &$refundOrder) {
+    $destination = $plugin->destinations->getDestinationByUid($ga4Uid);
+    $refundOrder = makeOrder([$small->id => 2], "refund-$run@example.test");
+    $orderIds[] = $refundOrder->id;
+
+    $plugin->events->process($plugin->commerce->eventFromOrder($refundOrder, TrackingEvent::PURCHASE), ['destinations' => [$destination]]);
+    $plugin->dispatcher->flushDeferred();
+
+    $before = count($transport->requests);
+    $plugin->commerce->trackRefund(refundEvent($refundOrder, (float)$refundOrder->getTotalPrice(), "rf1$run"));
+    $plugin->dispatcher->flushDeferred();
+
+    $sent = $refundRequests($transport, $before);
+    $params = $sent[0]['body']['events'][0]['params'] ?? [];
+
+    return count($sent) === 1
+        && ($params['transaction_id'] ?? null) === (string)($refundOrder->reference ?: $refundOrder->number)
+        && abs(($params['value'] ?? 0) - (float)$refundOrder->getTotalPrice()) < 0.01
+        && count($params['items'] ?? []) === 1
+        && !empty($sent[0]['body']['client_id'])
+            ? true
+            : json_encode($sent);
+});
+
+check('the same refund announced twice is sent once', function() use ($plugin, $run, $transport, $refundRequests, &$refundOrder) {
+    $before = count($transport->requests);
+    $plugin->commerce->trackRefund(refundEvent($refundOrder, (float)$refundOrder->getTotalPrice(), "rf1$run"));
+    $plugin->dispatcher->flushDeferred();
+
+    return $refundRequests($transport, $before) === [] ? true : 'a retried refund webhook doubled the refund';
+});
+
+check('a partial refund carries its own amount and no items', function() use ($plugin, $run, $transport, $refundRequests, &$refundOrder) {
+    $before = count($transport->requests);
+    $plugin->commerce->trackRefund(refundEvent($refundOrder, 1.5, "rf2$run"));
+    $plugin->dispatcher->flushDeferred();
+
+    $sent = $refundRequests($transport, $before);
+    $params = $sent[0]['body']['events'][0]['params'] ?? [];
+
+    return count($sent) === 1 && abs(($params['value'] ?? 0) - 1.5) < 0.001 && empty($params['items'])
+        ? true
+        : json_encode($sent);
+});
+
+check('a failed refund transaction sends nothing', function() use ($plugin, $run, $transport, &$refundOrder) {
+    $before = count($transport->requests);
+    $plugin->commerce->trackRefund(refundEvent($refundOrder, 2.0, "rf3$run", 'failed'));
+    $plugin->dispatcher->flushDeferred();
+
+    return count($transport->requests) === $before ? true : 'a declined refund was reported';
+});
+
+check('a refund of a purchase whose consent was withheld is skipped, not sent', function() use ($plugin, $run, $transport, $refundRequests) {
+    $skipped = Order::find()->isCompleted(true)->email("skip-$run@example.test")->one();
+
+    if ($skipped === null) {
+        return 'the consent-skipped order from earlier is missing';
+    }
+
+    $before = count($transport->requests);
+    $plugin->commerce->trackRefund(refundEvent($skipped, 5.0, "rf4$run"));
+    $plugin->dispatcher->flushDeferred();
+
+    $rows = $plugin->ledger->getRecent(['orderId' => $skipped->id, 'eventName' => TrackingEvent::REFUND]);
+    $statuses = array_unique(array_column($rows, 'status'));
+
+    return $refundRequests($transport, $before) === [] && $statuses === [Ledger::STATUS_SKIPPED]
+        ? true
+        : json_encode($rows);
+});
+
+check('the refund destination is taken away before recovery is tested', function() use ($plugin, &$ga4Uid) {
+    // Recovery sweeps every active destination, and this one has no `_ga` cookie to send a
+    // purchase with — left in place it would fail the recovery checks for a reason of its own.
+    $destination = $plugin->destinations->getDestinationByUid($ga4Uid);
+
+    return $destination === null || $plugin->destinations->deleteDestination($destination) ? true : 'could not delete it';
 });
 
 // ──────────────────────────────────────────────────────────────────────────────────────────────

@@ -207,6 +207,13 @@ class GoogleAnalytics4 extends GtagPlatform
 
         $clientId = Identity::ga4ClientId($event->userData);
 
+        // A refund is issued from the control panel, where there is no `_ga` cookie to read. GA4
+        // matches refunds on the transaction ID and documents that any client ID will do, so one
+        // is derived from the event — stable, so a retried send is the same refund.
+        if ($clientId === null && $event->name === TrackingEvent::REFUND) {
+            $clientId = hexdec(substr(md5($event->eventId), 0, 7)) . '.' . hexdec(substr(md5($event->eventId), 7, 7));
+        }
+
         if ($clientId === null) {
             return null;
         }

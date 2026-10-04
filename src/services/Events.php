@@ -334,7 +334,7 @@ class Events extends Component
      *
      * Server-side calls *are* gated, because there is no later.
      *
-     * @param array{record?: bool, serverSide?: bool, destinations?: Destination[]} $options
+     * @param array{record?: bool, serverSide?: bool, serverConsent?: bool|null, destinations?: Destination[]} $options
      *        `record` and `serverSide` are turned off when *pre-mapping* an event that has not
      *        happened yet — a trigger's payload is built at render time and may never fire, and a
      *        ledger row for a conversion nobody made is worse than no row at all.
@@ -384,7 +384,7 @@ class Events extends Component
                 $hasServerSide = true;
 
                 if ($serverSide) {
-                    $this->scheduleServerSide($event, $destination);
+                    $this->scheduleServerSide($event, $destination, $options['serverConsent'] ?? null);
                 }
             }
         }
@@ -426,7 +426,11 @@ class Events extends Component
      * `queueServerSide` can be turned off for a site whose queue does not run reliably, and then
      * the call is made inline after the response has been sent.
      */
-    private function scheduleServerSide(TrackingEvent $event, Destination $destination): void
+    /**
+     * @param bool|null $consent Overrides this request's consent answer, for an event — a refund —
+     * whose request is not the customer's. Null asks the request.
+     */
+    private function scheduleServerSide(TrackingEvent $event, Destination $destination, ?bool $consent = null): void
     {
         $plugin = Plugin::getInstance();
 
@@ -436,7 +440,7 @@ class Events extends Component
             return;
         }
 
-        if (!$plugin->consent->allowsServerSide($destination->consentCategory)) {
+        if (!($consent ?? $plugin->consent->allowsServerSide($destination->consentCategory))) {
             if ($event->isConversion()) {
                 $plugin->ledger->record($event, $destination, Ledger::CHANNEL_SERVER, Ledger::STATUS_SKIPPED);
             }
