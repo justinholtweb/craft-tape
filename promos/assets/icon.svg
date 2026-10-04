@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" rx="22" fill="#8F551E"/>
+  <g fill="#FFF8F0">
+    <!-- The face of the roll, with its hole -->
+    <path fill-rule="evenodd" d="M46 21a30 17 0 1 1 0 34a30 17 0 1 1 0-34Zm0 8.5a15 8.5 0 1 0 0 17a15 8.5 0 1 0 0-17Z"/>
+    <!-- The side, separated from the face by a sliver of background -->
+    <path d="M16 42.5a30 17 0 0 0 60 0V55a30 17 0 0 1-60 0Z"/>
+    <!-- The torn end pulled off the roll -->
+    <path d="M70.5 63.5 76 52l13 17.5-3 1.6 2.4 3-3.6 1 1.4 3.8-4.2-.6-.4 4-4-2.4Z"/>
+  </g>
+  <!-- The cardboard core -->
+  <ellipse cx="46" cy="38" rx="11.5" ry="6.3" fill="none" stroke="#FFF8F0" stroke-width="1.8"/>
+</svg>

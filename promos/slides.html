@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<!-- handmade: hand-tuned deck -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tape — Plugin Store promos</title>
+<link rel="stylesheet" href="fonts.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --ink: #15100B;
+    --ink-light: #1C140D;
+    --ink-lighter: #2B2117;
+    --accent: #8F551E;        /* the icon's tile; fills only, never text on ink */
+    --accent-mid: #C7843F;
+    --accent-light: #E0A060;  /* anything small on the dark background */
+    --off-white: #FFF8F0;
+    --sent: #8FD694;
+    --held: #E0A060;
+    --lost: #EE8A72;
+  }
+
+  html { background: #000; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: var(--off-white);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---- slide shell ---------------------------------------------------- */
+  .slide {
+    position: relative;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse at 85% 15%, rgba(143, 85, 30, 0.36) 0%, transparent 40%),
+      radial-gradient(ellipse at 65% 5%,  rgba(224, 160, 96, 0.12) 0%, transparent 35%),
+      radial-gradient(ellipse at 15% 85%, rgba(224, 160, 96, 0.06) 0%, transparent 40%),
+      radial-gradient(ellipse at 35% 95%, rgba(143, 85, 30, 0.16) 0%, transparent 35%),
+      linear-gradient(135deg, #15100B 0%, #1C140D 35%, #19120C 65%, #15100B 100%);
+  }
+
+  /* Oversized watermark: the roll alone, no tile. Anchored bottom-right, running off both
+     edges, so it reads as texture rather than as a shape behind the headline. */
+  .slide::after {
+    content: '';
+    position: absolute;
+    top: 30%;
+    right: -18%;
+    width: 1300px;
+    height: 1300px;
+    background: url('assets/watermark.svg') no-repeat center / contain;
+    opacity: 0.025;
+    pointer-events: none;
+  }
+
+  /* The cover has the icon itself; a watermark behind it reads as its shadow. */
+  .cover::after { display: none; }
+
+  .slide::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 6px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-light), var(--off-white), var(--accent));
+    z-index: 5;
+  }
+
+  .inner {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    padding: 118px 130px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* ---- type ------------------------------------------------------------ */
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 0.30em;
+    text-transform: uppercase;
+    color: var(--accent-light);
+    margin-bottom: 30px;
+  }
+  .eyebrow .rule {
+    width: 58px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--accent-light);
+  }
+
+  h1, h2 {
+    font-family: 'Jersey 20', sans-serif;
+    font-weight: 400;
+    line-height: 0.92;
+    letter-spacing: 0.005em;
+  }
+
+  .gradient-text {
+    background: linear-gradient(100deg, #C7843F 0%, #E0A060 35%, #FFF8F0 65%, #E0A060 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .lede {
+    font-size: 32px;
+    line-height: 1.48;
+    color: rgba(255, 248, 240, 0.72);
+  }
+
+  .mono { font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace; }
+
+  .points { list-style: none; margin-top: 38px; display: flex; flex-direction: column; gap: 18px; }
+  .points li {
+    display: flex;
+    gap: 16px;
+    font-size: 25px;
+    line-height: 1.4;
+    color: rgba(255, 248, 240, 0.64);
+  }
+  .points li svg { flex: 0 0 auto; margin-top: 4px; }
+
+  /* ---- cover ----------------------------------------------------------- */
+  .cover .inner { gap: 90px; }
+  .cover .copy { flex: 1 1 auto; }
+  .cover h1 { font-size: 220px; line-height: 0.85; margin-bottom: 28px; }
+  .cover .tagline {
+    font-size: 50px;
+    line-height: 1.2;
+    color: var(--off-white);
+    margin-bottom: 22px;
+    max-width: 960px;
+  }
+  .cover .sub {
+    font-size: 29px;
+    line-height: 1.45;
+    color: rgba(255, 248, 240, 0.62);
+    max-width: 900px;
+    margin-bottom: 46px;
+  }
+  .cover .badges { display: flex; gap: 18px; align-items: center; }
+  .badge {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 14px 26px;
+    border-radius: 999px;
+    border: 2px solid rgba(224, 160, 96, 0.45);
+    color: rgba(255, 248, 240, 0.85);
+  }
+  .badge.price { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .cover .mark { flex: 0 0 auto; }
+  .cover .mark img { width: 440px; height: 440px; display: block; border-radius: 96px; box-shadow: 0 40px 100px rgba(0,0,0,0.5); }
+
+  /* ---- footer lockup --------------------------------------------------- */
+  .footer {
+    position: absolute;
+    left: 130px;
+    bottom: 50px;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 22px;
+    color: rgba(255, 248, 240, 0.42);
+  }
+  .footer img { width: 40px; height: 40px; border-radius: 9px; }
+  .footer b { color: rgba(255, 248, 240, 0.72); font-weight: 600; }
+
+  /* ---- shared panel ---------------------------------------------------- */
+  .panel {
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    background: rgba(21, 16, 11, 0.74);
+  }
+
+  .chip {
+    display: inline-block;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    padding: 6px 14px;
+  }
+  .chip.lost { color: var(--lost); background: rgba(238, 138, 114, 0.12); border: 1px solid rgba(238, 138, 114, 0.4); }
+  .chip.held { color: var(--held); background: rgba(224, 160, 96, 0.12); border: 1px solid rgba(224, 160, 96, 0.4); }
+  .chip.sent { color: var(--sent); background: rgba(143, 214, 148, 0.10); border: 1px solid rgba(143, 214, 148, 0.4); }
+
+  /* ---- slide 2: where conversions go missing --------------------------- */
+  .causes {
+    position: absolute; right: 120px; top: 50%; transform: translateY(-50%);
+    width: 930px; display: grid; grid-template-columns: 1fr 1fr; gap: 26px;
+  }
+  .cause { padding: 32px 34px; }
+  .cause b { display: block; font-size: 29px; line-height: 1.25; margin: 18px 0 12px; color: var(--off-white); }
+  .cause span { font-size: 21px; line-height: 1.5; color: rgba(255, 248, 240, 0.6); }
+  .cause.twice { border-color: rgba(224, 160, 96, 0.35); }
+
+  /* ---- slide 3: one event, two channels -------------------------------- */
+  .flowslide .inner { flex-direction: column; align-items: flex-start; justify-content: center; padding-top: 96px; padding-bottom: 120px; }
+  .flowslide h2 { font-size: 96px; margin-bottom: 22px; }
+  .flowslide .lede { font-size: 29px; max-width: 1400px; margin-bottom: 50px; }
+  .flow { display: flex; align-items: center; gap: 0; width: 1660px; }
+  .flow .arrow { flex: 0 0 64px; display: flex; justify-content: center; }
+  .sources { flex: 0 0 380px; padding: 28px 30px; }
+  .sources .hd, .channel .hd, .event .hd {
+    font-size: 15px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+    color: rgba(255, 248, 240, 0.45); margin-bottom: 16px;
+  }
+  .sources ul { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+  .sources li { font-size: 21px; color: rgba(255, 248, 240, 0.78); padding: 9px 14px; border-radius: 8px; background: rgba(255, 248, 240, 0.05); }
+  /* Only an order or a recovery can announce a purchase; the browser-side sources are refused one. */
+  .sources li.on { color: #FFF8F0; box-shadow: inset 3px 0 0 #E0A060; }
+  .sources li.off { opacity: 0.38; }
+  .sources li code { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-size: 19px; color: var(--accent-light); }
+  .event { flex: 0 0 440px; padding: 30px 32px; border-color: rgba(224, 160, 96, 0.55); background: rgba(143, 85, 30, 0.22); }
+  .event .title { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-size: 27px; font-weight: 700; color: var(--off-white); margin-bottom: 18px; }
+  .event dl { display: grid; grid-template-columns: 110px 1fr; row-gap: 12px; font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-size: 21px; }
+  .event dt { color: rgba(255, 248, 240, 0.45); }
+  .event dd { color: rgba(255, 248, 240, 0.85); }
+  .event dd.id { color: var(--accent-light); font-weight: 700; line-height: 1.35; }
+  .channels { flex: 1 1 auto; display: flex; flex-direction: column; gap: 18px; }
+  .channel { padding: 22px 28px; }
+  .channel code { display: block; font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-size: 19px; line-height: 1.5; color: rgba(255, 248, 240, 0.78); }
+  .channel code em { font-style: normal; color: var(--accent-light); font-weight: 700; }
+  .result { display: flex; align-items: center; gap: 22px; padding: 20px 28px; border-radius: 14px; background: rgba(143, 214, 148, 0.08); border: 1px solid rgba(143, 214, 148, 0.35); }
+  .result .n { font-family: 'Jersey 20', sans-serif; font-size: 76px; line-height: 0.8; color: var(--sent); }
+  .result span { font-size: 21px; line-height: 1.4; color: rgba(255, 248, 240, 0.72); }
+  .result b { color: var(--off-white); }
+
+  /* ---- slide 4: platforms ---------------------------------------------- */
+  .platforms .inner { flex-direction: column; align-items: flex-start; justify-content: center; padding-top: 90px; padding-bottom: 120px; }
+  .platforms h2 { font-size: 92px; margin-bottom: 20px; }
+  .platforms .lede { font-size: 28px; max-width: 1500px; margin-bottom: 40px; }
+  .pgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; width: 1660px; }
+  .ptile { padding: 20px 22px 18px; display: flex; flex-direction: column; min-height: 150px; }
+  .ptile .top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .ptile b { font-size: 25px; color: var(--off-white); line-height: 1.2; }
+  .ptile .ed { font-size: 14px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,248,240,0.5); }
+  .ptile .ed.pro { color: var(--accent-light); }
+  .ptile .detail { font-size: 18px; line-height: 1.4; color: rgba(255, 248, 240, 0.55); margin-top: 6px; flex: 1 1 auto; }
+  .ptile .srv { margin-top: 12px; font-size: 16px; font-weight: 600; color: var(--sent); }
+  .ptile .srv.none { color: rgba(255, 248, 240, 0.32); font-weight: 500; }
+  .ptile.extra { border-style: dashed; border-color: rgba(224, 160, 96, 0.4); }
+
+  /* ---- slide 5: consent ------------------------------------------------ */
+  .states { position: absolute; right: 120px; top: 50%; transform: translateY(-52%); width: 880px; display: flex; flex-direction: column; gap: 22px; }
+  .state { padding: 28px 34px; display: grid; grid-template-columns: 250px 1fr; gap: 6px 28px; align-items: start; }
+  .state .chip { justify-self: start; margin-top: 4px; }
+  .state b { font-size: 30px; color: var(--off-white); }
+  .state span { grid-column: 2; font-size: 21px; line-height: 1.5; color: rgba(255, 248, 240, 0.6); }
+  .state.held { border-color: rgba(224, 160, 96, 0.55); background: rgba(143, 85, 30, 0.2); }
+  .cmps { margin-top: 36px; font-size: 21px; line-height: 1.6; color: rgba(255, 248, 240, 0.48); max-width: 640px; }
+  .cmps b { color: rgba(255, 248, 240, 0.75); font-weight: 600; }
+  .cmps code { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-size: 19px; color: var(--accent-light); }
+
+  /* ---- control-panel screenshot cards ---------------------------------- */
+  .shotframe {
+    border-radius: 14px;
+    overflow: hidden;
+    background: #e4edf6;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    box-shadow: 0 40px 90px rgba(0, 0, 0, 0.55), 0 6px 18px rgba(0, 0, 0, 0.35);
+  }
+  .shotframe .chrome {
+    display: flex; align-items: center; gap: 9px; padding: 13px 18px;
+    background: linear-gradient(180deg, #33281c 0%, #2B2117 100%);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.35);
+  }
+  .shotframe .chrome b { width: 12px; height: 12px; border-radius: 50%; }
+  .shotframe .chrome b:nth-child(1) { background: #ff5f57; }
+  .shotframe .chrome b:nth-child(2) { background: #febc2e; }
+  .shotframe .chrome b:nth-child(3) { background: #28c840; }
+  .shotframe .chrome em { margin-left: 12px; font-style: normal; font-size: 19px; color: rgba(255, 248, 240, 0.5); }
+  .shotframe img { display: block; width: 100%; height: auto; }
+
+  /* slide 6: header row, wide shot underneath */
+  .wide .inner { flex-direction: column; align-items: stretch; justify-content: center; padding-top: 80px; padding-bottom: 130px; }
+  .wide .head { display: flex; gap: 80px; align-items: flex-end; margin-bottom: 44px; }
+  .wide .head .l { flex: 0 0 760px; }
+  .wide h2 { font-size: 84px; margin-bottom: 36px; }
+  .wide .shotframe { flex: 0 0 auto; }
+  .wide .head .r { flex: 1 1 auto; font-size: 26px; line-height: 1.5; color: rgba(255, 248, 240, 0.68); padding-bottom: 6px; }
+  .wide .head .r b { color: var(--off-white); font-weight: 600; }
+  .wide .below { display: flex; gap: 48px; margin-top: 30px; flex: 0 0 auto; }
+  .wide .below div { flex: 1 1 0; font-size: 21px; line-height: 1.5; color: rgba(255, 248, 240, 0.55); }
+  .wide .below b { display: block; color: var(--accent-light); font-size: 15px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 6px; }
+
+  /* slide 7: copy left, shot right */
+  .cpcard .inner { gap: 60px; padding-right: 90px; }
+  .cpcard .copy { flex: 0 0 500px; }
+  .cpcard h2 { font-size: 84px; margin-bottom: 26px; }
+  .cpcard .lede { font-size: 28px; }
+  .cpcard .panel-r { flex: 1 1 auto; min-width: 0; }
+  .cpcard .caption { margin-top: 20px; font-size: 21px; line-height: 1.45; color: rgba(255, 248, 240, 0.5); }
+  .cpcard .caption b { color: rgba(255, 248, 240, 0.8); font-weight: 600; }
+
+  /* Only render the requested slide when screenshotting */
+  body.single .slide { display: none; }
+  body.single .slide.active { display: block; }
+</style>
+</head>
+<body>
+
+<!-- 1 · Cover ============================================================ -->
+<section class="slide cover" data-n="1">
+  <div class="inner">
+    <div class="copy">
+      <div class="eyebrow"><span class="rule"></span> Conversion tracking for Craft CMS 5</div>
+      <h1 class="gradient-text">Tape</h1>
+      <p class="tagline">Every conversion, counted once.</p>
+      <p class="sub">Thirteen ad and analytics pixels, the Commerce funnel behind them, Consent Mode v2 in front of them, and server-side tracking underneath.</p>
+      <div class="badges">
+        <span class="badge price">Lite free &nbsp;·&nbsp; Pro $99</span>
+        <span class="badge">$59/year renewal</span>
+        <span class="badge">Commerce optional</span>
+      </div>
+    </div>
+    <div class="mark"><img src="assets/icon.svg" alt=""></div>
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Tape</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-tape</div>
+</section>
+
+<!-- 2 · Where conversions go missing ===================================== -->
+<section class="slide feature" data-n="2">
+  <div class="inner">
+    <div class="copy" style="width: 640px;">
+      <div class="eyebrow"><span class="rule"></span> The problem</div>
+      <h2 style="font-size: 100px; margin-bottom: 30px;">Where<br>conversions<br>go missing</h2>
+      <p class="lede" style="max-width: 620px;">Browser tracking loses somewhere between a tenth and nearly half of real orders, for ordinary reasons.</p>
+      <ul class="points">
+        <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E0A060" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> <span>Ad platforms only know what reached them</span></li>
+        <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E0A060" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> <span>So the campaign looks worse, and loses budget</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="causes">
+    <div class="cause panel"><span class="chip lost">Lost</span><b>Redirect payment gateways</b><span>The customer pays on the bank's page and closes the tab. The order exists; the confirmation page never rendered.</span></div>
+    <div class="cause panel"><span class="chip lost">Lost</span><b>Ad and tracking blockers</b><span>The vendor script is blocked before it loads, and whatever it would have reported goes with it.</span></div>
+    <div class="cause panel"><span class="chip lost">Lost</span><b>Tabs closed early</b><span>The visitor left before the vendor's script finished loading. Nothing errors; the event never leaves.</span></div>
+    <div class="cause panel twice"><span class="chip held">Counted twice</span><b>A server-side send with no shared ID</b><span>Add a Conversions API without a shared event ID and every order both channels saw is reported twice.</span></div>
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Tape</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-tape</div>
+</section>
+
+<!-- 3 · One event, two channels ========================================== -->
+<section class="slide flowslide" data-n="3">
+  <div class="inner">
+    <div class="eyebrow"><span class="rule"></span> How it works</div>
+    <h2>One event, two channels, one ID</h2>
+    <p class="lede">Everything becomes the same event before anything platform-specific happens. The browser tag and the Conversions API are that one event, so the platform deduplicates instead of double-counting.</p>
+    <div class="flow">
+      <div class="sources panel">
+        <div class="hd">Every source, one shape</div>
+        <ul>
+          <li class="on">Commerce order completed</li>
+          <li class="off"><code>craft.tape.track()</code></li>
+          <li class="off"><code>tape.track()</code> in JS</li>
+          <li class="off">A trigger firing</li>
+          <li class="on">A recovery sweep</li>
+        </ul>
+      </div>
+      <div class="arrow"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#E0A060" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="event panel">
+        <div class="hd">TrackingEvent</div>
+        <div class="title">purchase</div>
+        <dl>
+          <dt>value</dt><dd>84.00 GBP</dd>
+          <dt>items</dt><dd>2</dd>
+          <dt>eventId</dt><dd class="id">7f3c9a2e-41b8-4d0c-<br>9e15-b2a06c7d58f1</dd>
+        </dl>
+      </div>
+      <div class="arrow"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#E0A060" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="channels">
+        <div class="channel panel">
+          <div class="hd">Browser tag</div>
+          <code>fbq('track', 'Purchase', {…},<br>&nbsp;&nbsp;{ eventID: <em>'7f3c9a2e-…'</em> })</code>
+        </div>
+        <div class="channel panel">
+          <div class="hd">Conversions API, from the queue</div>
+          <code>{ event_name: 'Purchase',<br>&nbsp;&nbsp;event_id: <em>'7f3c9a2e-…'</em>, … }</code>
+        </div>
+        <div class="result"><div class="n">1</div><span><b>purchase in Meta.</b> Whichever copy arrives second matches the first on the event ID and is dropped.</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Tape</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-tape</div>
+</section>
+
+<!-- 4 · Where it sends =================================================== -->
+<section class="slide platforms" data-n="4">
+  <div class="inner">
+    <div class="eyebrow"><span class="rule"></span> Where it sends</div>
+    <h2>Thirteen platforms. Paste in the ID.</h2>
+    <p class="lede">A custom snippet for anything else, and a webhook. Two of the same platform is normal: an agency pixel and a client pixel are two destinations.</p>
+    <div class="pgrid">
+      <div class="ptile panel"><div class="top"><b>Google Ads</b><span class="ed">Lite</span></div><div class="detail">Conversions, remarketing, cart data, enhanced conversions</div><div class="srv none">Browser</div></div>
+      <div class="ptile panel"><div class="top"><b>GA4</b><span class="ed">Lite</span></div><div class="detail">Enhanced ecommerce</div><div class="srv">+ Measurement Protocol</div></div>
+      <div class="ptile panel"><div class="top"><b>Tag Manager</b><span class="ed">Lite</span></div><div class="detail">The container, plus a real data layer</div><div class="srv none">Browser</div></div>
+      <div class="ptile panel"><div class="top"><b>Meta</b><span class="ed">Lite</span></div><div class="detail">Facebook and Instagram</div><div class="srv">+ Conversions API</div></div>
+      <div class="ptile panel"><div class="top"><b>Clarity</b><span class="ed">Lite</span></div><div class="detail">Session recording and heatmaps</div><div class="srv none">Browser</div></div>
+      <div class="ptile panel"><div class="top"><b>Hotjar</b><span class="ed">Lite</span></div><div class="detail">Session recording and heatmaps</div><div class="srv none">Browser</div></div>
+      <div class="ptile panel"><div class="top"><b>Microsoft Ads</b><span class="ed pro">Pro</span></div><div class="detail">Bing UET</div><div class="srv none">Browser</div></div>
+      <div class="ptile panel"><div class="top"><b>TikTok</b><span class="ed pro">Pro</span></div><div class="detail">Pixel and events</div><div class="srv">+ Events API</div></div>
+      <div class="ptile panel"><div class="top"><b>Pinterest</b><span class="ed pro">Pro</span></div><div class="detail">Tag and conversions</div><div class="srv">+ Conversions API</div></div>
+      <div class="ptile panel"><div class="top"><b>LinkedIn</b><span class="ed pro">Pro</span></div><div class="detail">Insight tag and conversions</div><div class="srv none">Browser</div></div>
+      <div class="ptile panel"><div class="top"><b>Snapchat</b><span class="ed pro">Pro</span></div><div class="detail">Pixel and conversions</div><div class="srv">+ Conversions API</div></div>
+      <div class="ptile panel"><div class="top"><b>Reddit</b><span class="ed pro">Pro</span></div><div class="detail">Pixel and conversions</div><div class="srv">+ Conversions API</div></div>
+      <div class="ptile panel"><div class="top"><b>X (Twitter)</b><span class="ed pro">Pro</span></div><div class="detail">Pixel and conversion events</div><div class="srv none">Browser</div></div>
+      <div class="ptile panel extra"><div class="top"><b>Custom snippet</b><span class="ed pro">Pro</span></div><div class="detail">Your own HTML, plus a JavaScript event queue</div><div class="srv none">Browser</div></div>
+      <div class="ptile panel extra"><div class="top"><b>Webhook</b><span class="ed pro">Pro</span></div><div class="detail">The event as JSON, posted to a URL of yours</div><div class="srv">Server: JSON POST</div></div>
+    </div>
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Tape</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-tape</div>
+</section>
+
+<!-- 5 · Unknown is not denied ============================================ -->
+<section class="slide feature" data-n="5">
+  <div class="inner">
+    <div class="copy" style="width: 680px;">
+      <div class="eyebrow"><span class="rule"></span> Consent Mode v2, on by default</div>
+      <h2 style="font-size: 100px; margin-bottom: 30px;">Unknown is<br>not denied</h2>
+      <p class="lede" style="max-width: 660px;">Consent has three states. "Not yet answered" is its own, and it decides whether a tag waits or gives up.</p>
+      <p class="cmps"><b>Reads</b> Cookiebot, CookieYes, Complianz, Iubenda, OneTrust, Osano, Termly, Klaro, Usercentrics and Civic, or a JavaScript expression of your own. With your own banner, it is one call: <code>tape.consent.update()</code></p>
+    </div>
+  </div>
+  <div class="states">
+    <div class="state panel"><span class="chip sent">Granted</span><b>The tag loads</b><span>Its pixel loads and its events fire. Server-side sends for it go ahead.</span></div>
+    <div class="state panel held"><span class="chip held">Not yet answered</span><b>The tag waits</b><span>Events are held in the page, not dropped. Accepting the banner starts tracking on this page, not the next one.</span></div>
+    <div class="state panel"><span class="chip lost">Denied</span><b>The tag gives up</b><span>Other pixels never load and Google's run cookieless, as Consent Mode intends. Server-side sends are skipped, and recovery leaves that order alone.</span></div>
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Tape</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-tape</div>
+</section>
+
+<!-- 6 · Recovery and the accuracy report (real CP screenshot) ============ -->
+<section class="slide wide" data-n="6">
+  <div class="inner">
+    <div class="eyebrow"><span class="rule"></span> Pro · Recovery and the accuracy report</div>
+    <h2>Finds the orders nobody heard about</h2>
+    <figure class="shotframe">
+      <div class="chrome"><b></b><b></b><b></b><em>Tape → Accuracy</em></div>
+      <img src="shots/tape-accuracy.png" alt="">
+    </figure>
+    <div class="below">
+      <div><b>The accuracy report</b>Orders you took, against conversions any platform was told about. No ad platform can show you this number.</div>
+      <div><b>Recovery</b>Missed orders are sent again from the server, carrying the event ID the browser tag would have carried.</div>
+      <div><b>Never overrides a decision</b>An order with a skipped row, such as one whose visitor withheld consent, is left alone.</div>
+    </div>
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Tape</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-tape</div>
+</section>
+
+<!-- 7 · Destinations (real CP screenshot) ================================ -->
+<section class="slide cpcard" data-n="7">
+  <div class="inner">
+    <div class="copy">
+      <div class="eyebrow"><span class="rule"></span> In the control panel</div>
+      <h2>Every pixel,<br>one screen</h2>
+      <p class="lede">Pick a platform, paste in the ID, choose its consent category. Switch on the server side where the platform has one.</p>
+      <ul class="points">
+        <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E0A060" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> <span>Project config plus env vars: staging and production get the same events</span></li>
+        <li><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E0A060" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> <span>Safe behind a full-page cache: nothing in the page varies by visitor</span></li>
+      </ul>
+    </div>
+    <div class="panel-r">
+      <figure class="shotframe">
+        <div class="chrome"><b></b><b></b><b></b><em>Tape → Destinations</em></div>
+        <img src="shots/tape-destinations.png" alt="">
+      </figure>
+      <p class="caption"><b>Test</b> sends a real event to each server-side API and shows the answer. A revoked token looks like success from a browser.</p>
+    </div>
+  </div>
+  <div class="footer"><img src="assets/icon.svg" alt=""> <b>Tape</b> &nbsp;·&nbsp; justinholt.com/plugins/craft-tape</div>
+</section>
+
+<script>
+  var n = new URLSearchParams(location.search).get('s');
+  if (n) {
+    document.body.classList.add('single');
+    var el = document.querySelector('.slide[data-n="' + n + '"]');
+    if (el) el.classList.add('active');
+  }
+</script>
+</body>
+</html>
