@@ -165,7 +165,7 @@ class Dispatcher extends Component
     private function serializeRequestContext(TrackingEvent $event): array
     {
         return [
-            'clickIds' => $event->userData?->clickIds ?? [],
+            'clickIds' => $event->userData->clickIds ?? [],
             'ip' => $event->userData?->ip,
             'userAgent' => $event->userData?->userAgent,
             'sourceUrl' => $event->userData?->sourceUrl,
@@ -199,7 +199,7 @@ class Dispatcher extends Component
             'elementId' => $event->elementId,
             'occurredAt' => $event->occurredAt,
             'items' => array_map(static fn($item) => $item->toArray(), $event->items),
-            'clickIds' => $event->userData?->clickIds ?? [],
+            'clickIds' => $event->userData->clickIds ?? [],
             'ip' => $event->userData?->ip,
             'userAgent' => $event->userData?->userAgent,
             'sourceUrl' => $event->userData?->sourceUrl,

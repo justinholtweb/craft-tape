@@ -109,7 +109,7 @@ class Ledger extends Component
         return implode(':', array_filter([
             $event->name,
             (string)$event->orderId,
-            $destination?->uid ?? '-',
+            $destination->uid ?? '-',
             $channel,
             $event->name === TrackingEvent::REFUND ? ($event->params['refund_id'] ?? null) : null,
         ]));
@@ -425,7 +425,7 @@ class Ledger extends Component
         $query = (new Query())->from(['{{%tape_events}}']);
 
         foreach (['eventName', 'status', 'channel', 'destinationUid', 'orderId', 'siteId'] as $key) {
-            if (isset($criteria[$key]) && $criteria[$key] !== '' && $criteria[$key] !== null) {
+            if (isset($criteria[$key]) && $criteria[$key] !== '') {
                 $query->andWhere([$key => $criteria[$key]]);
             }
         }

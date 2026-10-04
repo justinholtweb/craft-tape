@@ -47,7 +47,8 @@
     "require-dev": {
         "craftcms/ecs": "dev-main",
         "craftcms/phpstan": "dev-main",
-        "phpunit/phpunit": "^10.5"
+        "phpunit/phpunit": "^10.5",
+        "phpstan/phpstan": "^1.12 || ^2.2"
     },
     "suggest": {
         "craftcms/commerce": "Lights up the full ecommerce funnel — product views, cart events, checkout steps, purchases and refunds."

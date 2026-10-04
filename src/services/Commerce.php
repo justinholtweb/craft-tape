@@ -5,7 +5,6 @@ namespace justinholtweb\tape\services;
 use Craft;
 use craft\base\Component;
 use craft\db\Query;
-use craft\errors\InvalidFieldException;
 use justinholtweb\tape\models\EventItem;
 use justinholtweb\tape\models\Settings;
 use justinholtweb\tape\models\TrackingEvent;
@@ -55,7 +54,7 @@ class Commerce extends Component
 
         $id = match ($settings->productIdSource) {
             Settings::ID_VARIANT_ID => (string)$variant->id,
-            Settings::ID_PRODUCT_ID => (string)($variant->getOwner()?->id ?? $variant->id),
+            Settings::ID_PRODUCT_ID => (string)($variant->getOwner()->id ?? $variant->id),
             default => (string)($variant->sku ?: $variant->id),
         };
 
@@ -336,7 +335,7 @@ class Commerce extends Component
                 if (is_string($value) && $value !== '') {
                     return $value;
                 }
-            } catch (InvalidFieldException|Throwable) {
+            } catch (Throwable) {
                 // Address field layouts are per-site configuration; a missing phone field is normal.
             }
         }
@@ -432,7 +431,7 @@ class Commerce extends Component
         }
 
         if (is_object($value) && method_exists($value, 'one')) {
-            return (string)($value->one()?->title ?? '') ?: null;
+            return (string)($value->one()->title ?? '') ?: null;
         }
 
         return null;
