@@ -134,7 +134,6 @@ dictate what gets sent.
 - **Project config writes from a bare console script are buffered** and lost without
   `saveModifiedConfigData()` — the checks' shutdown handler calls it, or its own cleanup silently
   does nothing while returning true.
-
 - **`Json::encode($x, JSON_UNESCAPED_SLASHES)` inside a `<script>` leaves `</script>` intact.**
   Passing flags replaces Craft's defaults; a search term or coupon code then ends the element.
   Everything written into a script goes through `Tags::scriptJson()`, which hex-escapes `<>&`.
