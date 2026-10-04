@@ -24,7 +24,7 @@
         "commerce"
     ],
     "license": "proprietary",
-    "homepage": "https://craft-tape.com",
+    "homepage": "https://justinholt.com/plugins/craft-tape",
     "minimum-stability": "dev",
     "prefer-stable": true,
     "authors": [
@@ -34,7 +34,7 @@
         }
     ],
     "support": {
-        "docs": "https://craft-tape.com/docs",
+        "docs": "https://justinholt.com/plugins/craft-tape/docs",
         "source": "https://github.com/justinholtweb/craft-tape",
         "issues": "https://github.com/justinholtweb/craft-tape/issues",
         "email": "justin@justinholt.com"
@@ -79,7 +79,7 @@
         "handle": "tape",
         "developer": "Justin Holt",
         "developerUrl": "https://justinholt.com",
-        "documentationUrl": "https://craft-tape.com/docs",
+        "documentationUrl": "https://justinholt.com/plugins/craft-tape/docs",
         "changelogUrl": "https://raw.githubusercontent.com/justinholtweb/craft-tape/main/CHANGELOG.md",
         "class": "justinholtweb\\tape\\Plugin"
     }

@@ -24,7 +24,7 @@ Initial release.
 
 - Google Consent Mode v2: all seven signals, region defaults with `EU` and `US-PRIVACY` expansion,
   wait-for-update, URL passthrough and ads data redaction.
-- Bridges for eleven consent platforms plus a custom expression, and a first-party mirror cookie so
+- Bridges for ten consent platforms plus a custom expression, and a first-party mirror cookie so
   server-side conversions honour consent as well.
 - Do Not Track and Global Privacy Control, off by default.
 - Per-destination consent categories. Events collected before consent are held and released when it
