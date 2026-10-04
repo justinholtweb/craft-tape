@@ -6,7 +6,7 @@ Initial release.
 
 ### Tracking
 
-- Fourteen platforms: Google Ads, Google Analytics 4, Google Tag Manager, Meta, Microsoft
+- Thirteen platforms: Google Ads, Google Analytics 4, Google Tag Manager, Meta, Microsoft
   Advertising, TikTok, Pinterest, LinkedIn, Snapchat, Reddit, X, Microsoft Clarity, Hotjar, plus a
   custom-snippet destination and a webhook.
 - The full GA4 ecommerce funnel, from `view_item_list` to `refund`, mapped into every platform's own
