@@ -131,15 +131,20 @@ class Webhook extends BasePlatform
             }
         }
 
+        // Encoded once, here, so the bytes that are signed are the bytes that are sent. Handing the
+        // array to the transport would let Guzzle re-encode it with its own flags — escaped slashes,
+        // escaped Unicode — and every signature would fail to verify on a body containing a URL.
+        $json = json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+
         if ($secret = $destination->setting('secret')) {
-            $headers['X-Tape-Signature'] = 'sha256=' . hash_hmac('sha256', json_encode($body, JSON_UNESCAPED_SLASHES), (string)$secret);
+            $headers['X-Tape-Signature'] = 'sha256=' . hash_hmac('sha256', $json, (string)$secret);
         }
 
         return [
             'url' => (string)$url,
             'method' => 'POST',
             'headers' => $headers,
-            'body' => $body,
+            'body' => $json,
         ];
     }
 }

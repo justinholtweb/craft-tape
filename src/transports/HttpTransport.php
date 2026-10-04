@@ -29,7 +29,8 @@ class HttpTransport implements TransportInterface
         }
 
         if (isset($request['body'])) {
-            $options['json'] = $request['body'];
+            // A string is already encoded — and possibly signed — so it goes out byte for byte.
+            $options[is_string($request['body']) ? 'body' : 'json'] = $request['body'];
         }
 
         try {

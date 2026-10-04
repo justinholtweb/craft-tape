@@ -12,7 +12,9 @@ namespace justinholtweb\tape\transports;
 interface TransportInterface
 {
     /**
-     * @param array{url: string, method?: string, headers?: array<string, string>, body?: array, query?: array} $request
+     * A `body` array is sent as JSON; a `body` string is sent exactly as given.
+     *
+     * @param array{url: string, method?: string, headers?: array<string, string>, body?: array|string, query?: array} $request
      * @return array{status: int, body: string, error: string|null}
      */
     public function send(array $request, int $timeout): array;

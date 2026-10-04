@@ -183,6 +183,9 @@ class Trigger extends Model
             [['type'], 'in', 'range' => self::TYPES],
             [['once'], 'in', 'range' => [self::ONCE_NEVER, self::ONCE_PAGE, self::ONCE_SESSION]],
             [['event'], 'match', 'pattern' => '/^[a-z][a-z0-9_]{0,39}$/', 'message' => Craft::t('tape', 'Event names are lowercase letters, numbers and underscores.')],
+            // A trigger fires on a visitor's say-so. A purchase or a refund has an order behind it,
+            // and only Commerce is allowed to announce one.
+            [['event'], 'in', 'range' => [TrackingEvent::PURCHASE, TrackingEvent::REFUND], 'not' => true, 'message' => Craft::t('tape', 'Purchases and refunds are tracked from Commerce orders, never from a trigger.')],
             [['value'], 'number', 'min' => 0],
             [['currency'], 'match', 'pattern' => '/^[A-Z]{3}$/', 'skipOnEmpty' => true],
             [['selector'], 'required', 'when' => fn(self $model) => $model->needsSelector(), 'message' => Craft::t('tape', 'This trigger type needs a CSS selector.')],

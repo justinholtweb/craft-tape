@@ -83,6 +83,36 @@
     return { context: context, fn: fn };
   }
 
+  /** A v4 UUID — the same shape PHP's `StringHelper::UUID()` produces, which the endpoints check. */
+  function uuid() {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+    var bytes = new Uint8Array(16);
+    if (window.crypto && window.crypto.getRandomValues) {
+      window.crypto.getRandomValues(bytes);
+    } else {
+      for (var i = 0; i < 16; i++) bytes[i] = Math.floor(Math.random() * 256);
+    }
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    var hex = '';
+    for (var j = 0; j < 16; j++) hex += (bytes[j] + 0x100).toString(16).slice(1);
+    return hex.slice(0, 8) + '-' + hex.slice(8, 12) + '-' + hex.slice(12, 16) + '-' + hex.slice(16, 20) + '-' + hex.slice(20);
+  }
+
+  /** A deep copy of `value` with every string equal to `from` replaced by `to`. */
+  function rekey(value, from, to) {
+    if (value === from) return to;
+    if (Array.isArray(value)) return value.map(function (v) { return rekey(v, from, to); });
+    if (value && typeof value === 'object') {
+      var copy = {};
+      for (var key in value) {
+        if (Object.prototype.hasOwnProperty.call(value, key)) copy[key] = rekey(value[key], from, to);
+      }
+      return copy;
+    }
+    return value;
+  }
+
   function readCookie(name) {
     var match = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
     return match ? decodeURIComponent(match.pop()) : null;
@@ -647,13 +677,19 @@
   function fireTrigger(trigger, suffix, extra) {
     if (!triggerFired(trigger, suffix)) return;
 
+    // The payloads were mapped when the page rendered, so the event ID inside them is the same for
+    // every visitor a cached page is served to — and for every firing on this one. Platforms
+    // deduplicate on it, so left alone they would count all of those as one conversion. Each firing
+    // gets its own, here, and the server half is told the same one so the pair still deduplicates.
+    var eventId = uuid();
+
     log('trigger', trigger.t, trigger.n);
-    dispatchEvent({ n: trigger.n, i: trigger.i, d: trigger.d });
+    dispatchEvent({ n: trigger.n, i: eventId, d: rekey(trigger.d, trigger.i, eventId) });
 
     // The server-side half only exists for destinations configured for it, and only then is a
     // round trip worth making.
     if (trigger.s) {
-      post(CONFIG.endpoints.trigger, { trigger: trigger.u, eventId: trigger.i, params: extra || {} }, false);
+      post(CONFIG.endpoints.trigger, { trigger: trigger.u, eventId: eventId, params: extra || {} }, false);
     }
   }
 

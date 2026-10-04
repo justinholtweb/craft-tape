@@ -36,6 +36,12 @@ class Events extends Component
     /** @event CollectEvent Fires before an event is queued; set `isValid` to false to drop it. */
     public const EVENT_BEFORE_COLLECT = 'beforeCollect';
 
+    /** Requests per IP per minute that each anonymous endpoint will act on. */
+    public const ANONYMOUS_LIMITS = [
+        'map' => 120,
+        'trigger' => 30,
+    ];
+
     /** @var TrackingEvent[] */
     private array $queue = [];
 
@@ -228,6 +234,46 @@ class Events extends Component
         $mask = ~((1 << (8 - $remainder)) - 1) & 0xFF;
 
         return (ord($binaryIp[$bytes]) & $mask) === (ord($binarySubnet[$bytes]) & $mask);
+    }
+
+    /**
+     * Whether this IP may make another anonymous request to the given endpoint this minute.
+     *
+     * The front-end endpoints are anonymous and CSRF-exempt, and each call can queue a Conversions
+     * API send. Without a ceiling, a loop of `curl`s posting a trigger UID lifted from page source
+     * becomes a stream of fake leads in somebody's ad account — and a queue nobody can drain. The
+     * limits are generous enough that no real visitor reaches them. Counted in the cache, not the
+     * session, so asking costs a page nothing in cacheability.
+     */
+    public function allowAnonymousRequest(string $endpoint, ?string $ip = null): bool
+    {
+        $limit = self::ANONYMOUS_LIMITS[$endpoint] ?? null;
+
+        if ($ip === null) {
+            $request = Craft::$app->getRequest();
+            $ip = $request instanceof \craft\web\Request ? $request->getUserIP() : null;
+        }
+
+        if ($limit === null || $ip === null || $ip === '') {
+            return true;
+        }
+
+        $key = 'tape:rate:' . $endpoint . ':' . sha1($ip) . ':' . intdiv(time(), 60);
+        $cache = Craft::$app->getCache();
+        $count = (int)$cache->get($key);
+
+        if ($count >= $limit) {
+            if ($count === $limit) {
+                Craft::warning("Tape throttled the {$endpoint} endpoint for one visitor after {$limit} requests in a minute.", Plugin::LOG_CATEGORY);
+                $cache->set($key, $count + 1, 120);
+            }
+
+            return false;
+        }
+
+        $cache->set($key, $count + 1, 120);
+
+        return true;
     }
 
     // ── The visitor ─────────────────────────────────────────────────────────────────────────

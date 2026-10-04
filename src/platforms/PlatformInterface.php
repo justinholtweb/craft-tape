@@ -85,7 +85,7 @@ interface PlatformInterface
     /**
      * The server-side call for this event, or null when there is not one.
      *
-     * @return array{url: string, method?: string, headers?: array<string, string>, body?: array, query?: array}|null
+     * @return array{url: string, method?: string, headers?: array<string, string>, body?: array|string, query?: array}|null
      */
     public function serverRequest(TrackingEvent $event, Destination $destination): ?array;
 

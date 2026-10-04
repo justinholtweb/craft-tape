@@ -93,7 +93,7 @@ class Tags extends Component
             $parts[] = $snippet;
         }
 
-        $parts[] = Html::script('window.__TAPE__=' . Json::encode($payload, JSON_UNESCAPED_SLASHES) . ';', ['type' => 'text/javascript']);
+        $parts[] = Html::script('window.__TAPE__=' . self::scriptJson($payload) . ';', ['type' => 'text/javascript']);
         $parts[] = Html::tag('script', '', ['src' => $this->getRuntimeUrl(), 'async' => true]);
 
         $this->headPlaced = true;
@@ -495,13 +495,13 @@ class Tags extends Component
 
         $defaults = $consent->defaultState()->toConsentModeArray();
         $defaults['wait_for_update'] = $settings->consentWaitForUpdate;
-        $js .= 'gtag("consent","default",' . Json::encode($defaults, JSON_UNESCAPED_SLASHES) . ');';
+        $js .= 'gtag("consent","default",' . self::scriptJson($defaults) . ');';
 
         foreach ($consent->regionDefaults() as $group) {
             $state = $group['state'];
             $state['region'] = $group['region'];
             $state['wait_for_update'] = $settings->consentWaitForUpdate;
-            $js .= 'gtag("consent","default",' . Json::encode($state, JSON_UNESCAPED_SLASHES) . ');';
+            $js .= 'gtag("consent","default",' . self::scriptJson($state) . ');';
         }
 
         if ($settings->urlPassthrough) {
@@ -538,5 +538,18 @@ class Tags extends Component
         $asset = new TapeAsset();
 
         return Craft::$app->getAssetManager()->getPublishedUrl($asset->sourcePath, true, 'tape.js');
+    }
+
+    /**
+     * JSON that is safe to write inside a `<script>` element.
+     *
+     * The payload carries strings that are not ours — a search term lifted from the query string, a
+     * coupon code a customer typed, a product title — and `JSON_UNESCAPED_SLASHES` alone leaves a
+     * `</script>` in any of them intact, which ends the element and starts the visitor's own markup.
+     * Hex-escaping `<`, `>` and `&` makes that impossible without changing what the JSON decodes to.
+     */
+    public static function scriptJson(mixed $value): string
+    {
+        return Json::encode($value, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP);
     }
 }

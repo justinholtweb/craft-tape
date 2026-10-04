@@ -23,6 +23,11 @@ use yii\web\Response;
  * `purchase` and `refund` outright; prices come from Commerce, looked up server-side from a product
  * ID; a `value` in the request body is ignored. The worst a determined visitor can do is fire, in
  * their own browser, events they could have fired by calling `fbq` from the console.
+ *
+ * The one thing a visitor *can* do here that the console cannot is make the server send — a
+ * Conversions API call per request, with no browser involved. So both endpoints that can queue one
+ * are throttled per IP ({@see \justinholtweb\tape\services\Events::allowAnonymousRequest()}),
+ * and over the limit they answer as if nothing were configured.
  */
 class EventsController extends Controller
 {
@@ -50,7 +55,11 @@ class EventsController extends Controller
 
         $plugin = Plugin::getInstance();
 
-        if (!$plugin->events->shouldTrack() || !$plugin->events->isEventEnabled($name)) {
+        if (
+            !$plugin->events->shouldTrack()
+            || !$plugin->events->isEventEnabled($name)
+            || !$plugin->events->allowAnonymousRequest('map')
+        ) {
             return $this->asJson(['events' => []]);
         }
 
@@ -125,13 +134,19 @@ class EventsController extends Controller
 
         $trigger = $plugin->destinations->getTriggerByUid($uid);
 
-        if ($trigger === null || !$trigger->enabled || !$plugin->events->shouldTrack()) {
+        if (
+            $trigger === null
+            || !$trigger->enabled
+            || in_array($trigger->event, [TrackingEvent::PURCHASE, TrackingEvent::REFUND], true)
+            || !$plugin->events->shouldTrack()
+            || !$plugin->events->allowAnonymousRequest('trigger')
+        ) {
             return $this->asJson(['ok' => false]);
         }
 
         $event = new TrackingEvent([
             'name' => $trigger->event,
-            'eventId' => $this->text($body['eventId'] ?? null, 64) ?: '',
+            'eventId' => $this->eventId($body['eventId'] ?? null),
             'value' => $trigger->value,
             'currency' => $trigger->currency,
             'source' => TrackingEvent::SOURCE_BROWSER,
@@ -193,7 +208,9 @@ class EventsController extends Controller
         }
 
         $quantity = max(1, min(999, (int)($body['qty'] ?? 1)));
-        $variants = \craft\commerce\elements\Variant::find()->id($ids)->status(null)->all();
+        // Enabled only: an anonymous caller must not be able to read the name and price of a product
+        // that has not been released, simply by guessing its ID.
+        $variants = \craft\commerce\elements\Variant::find()->id($ids)->all();
         $items = [];
         $index = 1;
 
@@ -264,6 +281,19 @@ class EventsController extends Controller
         }
 
         return $handles;
+    }
+
+    /**
+     * The browser's event ID for a trigger, so its tag and the server call deduplicate.
+     *
+     * Only ever the runtime's own UUIDs; anything else is replaced, so a caller cannot choose an ID
+     * that collides with — and suppresses on the platform — somebody else's conversion.
+     */
+    private function eventId(mixed $value): string
+    {
+        return is_string($value) && preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $value) === 1
+            ? strtolower($value)
+            : '';
     }
 
     private function text(mixed $value, int $max): ?string

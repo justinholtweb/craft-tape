@@ -366,4 +366,5 @@ return [
     'Conversions, last 7 days' => 'Conversions, last 7 days',
     'None yet' => 'None yet',
     'Only conversions are logged — a destination showing none may still be sending page views and product views perfectly well. The event log lists everything.' => 'Only conversions are logged — a destination showing none may still be sending page views and product views perfectly well. The event log lists everything.',
+    'Purchases and refunds are tracked from Commerce orders, never from a trigger.' => 'Purchases and refunds are tracked from Commerce orders, never from a trigger.',
 ];

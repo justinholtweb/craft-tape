@@ -32,7 +32,9 @@ use justinholtweb\tape\models\TrackingEvent;
 use justinholtweb\tape\models\Trigger;
 use justinholtweb\tape\models\UserData;
 use justinholtweb\tape\Plugin;
+use justinholtweb\tape\services\Events;
 use justinholtweb\tape\services\Ledger;
+use justinholtweb\tape\services\Tags;
 use justinholtweb\tape\transports\TransportInterface;
 
 $passed = 0;
@@ -1039,12 +1041,16 @@ check('the webhook signs its body with HMAC-SHA256 when a secret is set', functi
         'header' => 'X-Api-Key: abc123',
     ]));
 
-    $expected = 'sha256=' . hash_hmac('sha256', json_encode($request['body'], JSON_UNESCAPED_SLASHES), 's3cret');
+    // The signature has to be over the exact bytes on the wire, so the body must already be a
+    // string. Re-deriving it from an array here is what hid the transport re-encoding it.
+    $body = is_string($request['body']) ? json_decode($request['body'], true) : null;
+    $expected = 'sha256=' . hash_hmac('sha256', (string)($body === null ? '' : $request['body']), 's3cret');
 
-    return $request['headers']['X-Tape-Signature'] === $expected
+    return $body !== null
+        && $request['headers']['X-Tape-Signature'] === $expected
         && $request['headers']['X-Api-Key'] === 'abc123'
-        && $request['body']['event'] === 'purchase'
-        && !isset($request['body']['user'])
+        && $body['event'] === 'purchase'
+        && !isset($body['user'])
             ? true
             : json_encode($request['headers']);
 });
@@ -1373,6 +1379,47 @@ check('a trigger saves and reads back', function() use ($plugin, $run, &$created
         && $read->value === 25.0
             ? true
             : json_encode($read?->getConfig());
+});
+
+check('a trigger can never announce a purchase or a refund', function() {
+    foreach ([TrackingEvent::PURCHASE, TrackingEvent::REFUND] as $name) {
+        $trigger = new Trigger(['name' => 'Fake', 'type' => Trigger::TYPE_TEL, 'event' => $name]);
+
+        if ($trigger->validate() || !$trigger->hasErrors('event')) {
+            return "a {$name} trigger validated";
+        }
+    }
+
+    return true;
+});
+
+check('the trigger endpoint stops acting for an IP that floods it', function() use ($plugin) {
+    $endpoint = 'trigger';
+    $limit = Events::ANONYMOUS_LIMITS[$endpoint];
+    $ip = '203.0.113.' . random_int(1, 254);
+    $key = 'tape:rate:' . $endpoint . ':' . sha1($ip) . ':' . intdiv(time(), 60);
+    $allowed = 0;
+
+    try {
+        for ($i = 0; $i < $limit + 5; $i++) {
+            $allowed += $plugin->events->allowAnonymousRequest($endpoint, $ip) ? 1 : 0;
+        }
+    } finally {
+        Craft::$app->getCache()->delete($key);
+    }
+
+    return $allowed === $limit ? true : "allowed {$allowed} of " . ($limit + 5);
+});
+
+check('the runtime mints a fresh event ID for every trigger firing', function() {
+    $js = file_get_contents(dirname(__DIR__, 2) . '/src/web/assets/tape/dist/tape.js');
+
+    // A trigger's payloads are mapped at render time and served from cache to everyone; sending the
+    // rendered ID would have every platform deduplicate all those visitors into one conversion.
+    return str_contains($js, 'rekey(trigger.d, trigger.i, eventId)')
+        && !str_contains($js, 'eventId: trigger.i')
+            ? true
+            : 'the trigger event ID is still the one baked into the page';
 });
 
 check('URI patterns match with a wildcard, and both with and without a leading slash', function() {
@@ -1972,6 +2019,30 @@ check('a matching event reaches the payload with a finished payload per destinat
     return $first['n'] === 'purchase' && $first['i'] === $event->eventId && $first['d'] !== []
         ? true
         : json_encode($first);
+});
+
+check('a visitor’s string in the payload cannot close the script element', function() use ($plugin) {
+    $plugin->events->clearQueue();
+    $plugin->tags->invalidateCache();
+
+    // A search term is the obvious route: templates pass the query string straight to track().
+    $plugin->events->collect(new TrackingEvent([
+        'name' => TrackingEvent::SEARCH,
+        'searchTerm' => '</script><script>alert(1)</script>',
+    ]));
+
+    $head = $plugin->tags->getHeadHtml();
+    $plugin->events->clearQueue();
+    $plugin->tags->invalidateCache();
+
+    $decoded = json_decode(Tags::scriptJson(['s' => '</script>&']), true);
+
+    return str_contains($head, 'window.__TAPE__')
+        && str_contains($head, 'alert(1)')
+        && !str_contains($head, '</script><script>alert')
+        && ($decoded['s'] ?? null) === '</script>&'
+            ? true
+            : 'the payload ends the <script> early';
 });
 
 check('a custom snippet is wrapped in an inert template when consent is in play', function() use ($plugin, $run, &$createdDestinations) {
