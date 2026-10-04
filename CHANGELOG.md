@@ -15,6 +15,9 @@ Initial release.
   gateway and a cart form both involve.
 - Google Ads conversions, dynamic remarketing, Performance Max cart data, new-customer reporting and
   enhanced conversions.
+- Refunds sent server-side the moment Commerce records one, full or partial, deduplicated per
+  refund transaction, and only for purchases that were themselves sent.
+- Custom event names, to the platforms that accept one.
 - A Twig API (`craft.tape.*` and a bare `tape` global) and a JavaScript API (`tape.track()`).
 
 ### Consent
@@ -33,7 +36,7 @@ Initial release.
   and a signed webhook.
 - Browser and server halves of the same conversion share one event ID, so platforms deduplicate them
   rather than double-counting.
-- Enhanced conversions and advanced matching, hashed in Craft.
+- Enhanced conversions and advanced matching, hashed in Craft (Pro).
 - Sends go through the queue by default, and after the response when queueing is off — never during
   it.
 
@@ -46,7 +49,7 @@ Initial release.
 - Conversion recovery: orders whose conversion never reached anybody are sent from the server, on a
   schedule, without overriding a withheld consent.
 - An accuracy report comparing orders placed against conversions tracked, per day and per
-  destination.
+  destination (Pro).
 - A per-destination health panel, and a console `doctor` that reports what is broken and what cannot
   be recovered.
 

@@ -41,9 +41,14 @@ setup for a browser pixel.
 | The money | `purchase`, `refund` |
 | Whatever else you want | any event name, from Twig, JavaScript, or a trigger |
 
-With Commerce installed, all of the ecommerce events are wired to Commerce's own events. **No
-template changes at all** — including across a redirect, so a basket updated by a form post still
-reports the right event on the page the customer lands on.
+With Commerce installed, add-to-cart, remove-from-cart, purchase and refund are wired to Commerce's
+own events. **No template changes at all** — including across a redirect, so a basket updated by a
+form post still reports the right event on the page the customer lands on. The other funnel steps
+are one line of Twig each.
+
+A custom name like `brochure_download` goes to the platforms that take one — GA4, GTM, Meta,
+Microsoft Ads, Clarity, Hotjar, TikTok and Reddit in the browser, the custom snippet and the
+webhook — and is skipped by those that only count conversion IDs set up on their side.
 
 ## Where it sends
 

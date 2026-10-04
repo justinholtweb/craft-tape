@@ -71,8 +71,9 @@ tape.debug();                // what the runtime believes: consent, booted, fail
 ```
 
 `track()` posts to Tape, which builds the per-destination payloads and hands them back. The event
-name must be one Tape accepts from a browser — `purchase` and `refund` are refused, and any `value`
-in the request is ignored. Prices come from Commerce, looked up from the product ID you pass as `id`
+name must be a standard one or a custom name (lowercase, underscores, at most 40 characters, not
+starting `ga_`, `google_` or `firebase_`) — `purchase` and `refund` are refused, and any `value` in
+the request is ignored. Prices come from Commerce, looked up from the product ID you pass as `id`
 or `ids`.
 
 To queue calls before the runtime has loaded:
