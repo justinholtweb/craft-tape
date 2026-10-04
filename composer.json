@@ -24,6 +24,7 @@
         "commerce"
     ],
     "license": "proprietary",
+    "homepage": "https://craft-tape.com",
     "minimum-stability": "dev",
     "prefer-stable": true,
     "authors": [

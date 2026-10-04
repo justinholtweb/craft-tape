@@ -135,6 +135,19 @@ dictate what gets sent.
   `saveModifiedConfigData()` — the checks' shutdown handler calls it, or its own cleanup silently
   does nothing while returning true.
 
+- **`Json::encode($x, JSON_UNESCAPED_SLASHES)` inside a `<script>` leaves `</script>` intact.**
+  Passing flags replaces Craft's defaults; a search term or coupon code then ends the element.
+  Everything written into a script goes through `Tags::scriptJson()`, which hex-escapes `<>&`.
+- **Anything mapped at render time is shared by everyone a cached page is served to.** Triggers'
+  event IDs were, so every platform deduplicated all visitors into one conversion. The runtime now
+  mints a UUID per firing and `rekey()`s it into the pre-mapped payloads.
+- **Guzzle's `json` option re-encodes with flags `0`.** Signing `json_encode($body,
+  JSON_UNESCAPED_SLASHES)` and sending the array meant the signed bytes were never the sent bytes.
+  A string `body` is now sent verbatim. The old test re-derived the signature the same wrong way.
+- **The shared harness's `.env` is edited by other sessions.** A run that coincides with
+  `CRAFT_ALLOW_ADMIN_CHANGES` being off fails with "project config … read-only mode" and cascades.
+  Re-run the suite alone before believing it.
+
 See also `[[craft-plugin-gotchas]]` in the shared memory for family-wide traps.
 
 ## Testing
@@ -143,7 +156,7 @@ No local PHP on this Mac. Everything runs inside the plugin-testing container:
 
 ```sh
 cd ~/Sites/plugin-testing
-ddev exec php  /var/www/craft-tape/tests/integration/checks.php           # 162 checks
+ddev exec php  /var/www/craft-tape/tests/integration/checks.php           # 166 checks
 ddev exec php  /var/www/craft-tape/tests/integration/commerce-checks.php  #  23 checks, real orders
 ddev exec bash /var/www/craft-tape/tests/integration/cp-smoke.sh          #  20 checks, every screen
 ddev exec bash -c 'cd /var/www/craft-tape && vendor/bin/phpstan analyse && vendor/bin/ecs check'
