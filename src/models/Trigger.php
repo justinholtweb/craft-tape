@@ -186,6 +186,11 @@ class Trigger extends Model
             // A trigger fires on a visitor's say-so. A purchase or a refund has an order behind it,
             // and only Commerce is allowed to announce one.
             [['event'], 'in', 'range' => [TrackingEvent::PURCHASE, TrackingEvent::REFUND], 'not' => true, 'message' => Craft::t('tape', 'Purchases and refunds are tracked from Commerce orders, never from a trigger.')],
+            [['event'], function(string $attribute) {
+                if (!in_array($this->event, TrackingEvent::STANDARD_EVENTS, true) && !TrackingEvent::isCustomName($this->event)) {
+                    $this->addError($attribute, Craft::t('tape', 'Use a standard event, or a custom name that does not start with `ga_`, `google_` or `firebase_`.'));
+                }
+            }],
             [['value'], 'number', 'min' => 0],
             [['currency'], 'match', 'pattern' => '/^[A-Z]{3}$/', 'skipOnEmpty' => true],
             [['selector'], 'required', 'when' => fn(self $model) => $model->needsSelector(), 'message' => Craft::t('tape', 'This trigger type needs a CSS selector.')],

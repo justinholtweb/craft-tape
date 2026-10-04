@@ -1055,6 +1055,44 @@ check('the webhook signs its body with HMAC-SHA256 when a secret is set', functi
             : json_encode($request['headers']);
 });
 
+check('a custom event name reaches the platforms that take one, and only those', function() use ($platforms) {
+    $takes = ['ga4', 'gtm', 'meta', 'microsoftAds', 'tiktok', 'reddit', 'clarity', 'hotjar', 'custom', 'webhook'];
+    $refuses = ['googleAds', 'linkedin', 'x', 'snapchat', 'pinterest'];
+
+    foreach ($takes as $handle) {
+        if (!$platforms[$handle]->supportsEvent('brochure_download')) {
+            return "$handle refused a custom event";
+        }
+    }
+
+    foreach ($refuses as $handle) {
+        if ($platforms[$handle]->supportsEvent('brochure_download')) {
+            return "$handle accepted a custom event it has nowhere to put";
+        }
+    }
+
+    $event = new TrackingEvent(['name' => 'brochure_download', 'params' => ['format' => 'pdf']]);
+    $meta = $platforms['meta']->mapEvent($event, destinationFor('meta', ['pixelId' => '123456789012345']));
+    $reddit = $platforms['reddit']->mapEvent($event, destinationFor('reddit', ['pixelId' => 'a2_abcdefghijkl']));
+    $tiktok = $platforms['tiktok']->mapEvent($event, destinationFor('tiktok', ['pixelId' => 'C4A1BCDEFGHIJKLMNOPQ']));
+
+    return ($meta[0]['args'][0] ?? null) === 'trackCustom' && ($meta[0]['args'][1] ?? null) === 'brochure_download'
+        && ($reddit[0]['args'][1] ?? null) === 'Custom' && ($reddit[0]['args'][2]['customEventName'] ?? null) === 'brochure_download'
+        && ($tiktok[0]['args'][0] ?? null) === 'brochure_download'
+            ? true
+            : json_encode([$meta, $reddit, $tiktok]);
+});
+
+check('a custom name Google reserves, or a malformed one, is not a custom event', function() {
+    foreach (['ga_thing', 'google_x', 'firebase_y', 'Brochure', 'two words', 'purchase', str_repeat('a', 41)] as $name) {
+        if (TrackingEvent::isCustomName($name)) {
+            return "$name was accepted";
+        }
+    }
+
+    return TrackingEvent::isCustomName('brochure_download') ? true : 'a plain custom name was refused';
+});
+
 check('the webhook has no browser half at all', function() use ($platforms, $purchase) {
     $destination = destinationFor('webhook', ['url' => 'https://example.com/hook']);
 

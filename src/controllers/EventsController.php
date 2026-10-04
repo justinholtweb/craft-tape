@@ -52,7 +52,9 @@ class EventsController extends Controller
         $body = $this->body();
         $name = (string)($body['event'] ?? '');
 
-        if (!in_array($name, TrackingEvent::REQUESTABLE_EVENTS, true)) {
+        // A custom name carries no value — none is ever read from a request — so it can be asked
+        // for as freely as `view_item`.
+        if (!in_array($name, TrackingEvent::REQUESTABLE_EVENTS, true) && !TrackingEvent::isCustomName($name)) {
             throw new BadRequestHttpException('Unrecognised event.');
         }
 

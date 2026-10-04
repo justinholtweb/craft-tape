@@ -67,12 +67,12 @@
 
     <hr>
 
-    {{ forms.selectField({
+    {{ forms.autosuggestField({
         label: "Event"|t('tape'),
-        instructions: "What gets sent. Each destination maps this into its own vocabulary — `generate_lead` becomes Meta’s `Lead`, TikTok’s `SubmitForm`, and a Google Ads conversion if you have given it a label."|t('tape'),
+        instructions: "What gets sent. Each destination maps a standard name into its own vocabulary — `generate_lead` becomes Meta’s `Lead`, TikTok’s `SubmitForm`, and a Google Ads conversion if you have given it a label. Any other lowercase name, like `brochure_download`, goes out as a custom event to the platforms that take one."|t('tape'),
         id: 'event',
         name: 'event',
-        options: eventOptions,
+        suggestions: [{data: eventOptions|column('value')}],
         value: trigger.event,
         errors: trigger.getErrors('event'),
         disabled: readOnly,

@@ -340,7 +340,7 @@ return [
     'Wait for an answer' => 'Wait for an answer',
     'Webhook' => 'Webhook',
     'What a purchase is worth' => 'What a purchase is worth',
-    'What gets sent. Each destination maps this into its own vocabulary — `generate_lead` becomes Meta’s `Lead`, TikTok’s `SubmitForm`, and a Google Ads conversion if you have given it a label.' => 'What gets sent. Each destination maps this into its own vocabulary — `generate_lead` becomes Meta’s `Lead`, TikTok’s `SubmitForm`, and a Google Ads conversion if you have given it a label.',
+    'What gets sent. Each destination maps a standard name into its own vocabulary — `generate_lead` becomes Meta’s `Lead`, TikTok’s `SubmitForm`, and a Google Ads conversion if you have given it a label. Any other lowercase name, like `brochure_download`, goes out as a custom event to the platforms that take one.' => 'What gets sent. Each destination maps a standard name into its own vocabulary — `generate_lead` becomes Meta’s `Lead`, TikTok’s `SubmitForm`, and a Google Ads conversion if you have given it a label. Any other lowercase name, like `brochure_download`, goes out as a custom event to the platforms that take one.',
     'What gets tracked' => 'What gets tracked',
     'What one of these is worth. Set here rather than in the browser, deliberately — a value a visitor could supply is a value a visitor could inflate.' => 'What one of these is worth. Set here rather than in the browser, deliberately — a value a visitor could supply is a value a visitor could inflate.',
     'When' => 'When',
@@ -367,4 +367,5 @@ return [
     'None yet' => 'None yet',
     'Only conversions are logged — a destination showing none may still be sending page views and product views perfectly well. The event log lists everything.' => 'Only conversions are logged — a destination showing none may still be sending page views and product views perfectly well. The event log lists everything.',
     'Purchases and refunds are tracked from Commerce orders, never from a trigger.' => 'Purchases and refunds are tracked from Commerce orders, never from a trigger.',
+    'Use a standard event, or a custom name that does not start with `ga_`, `google_` or `firebase_`.' => 'Use a standard event, or a custom name that does not start with `ga_`, `google_` or `firebase_`.',
 ];
