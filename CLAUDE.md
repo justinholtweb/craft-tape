@@ -70,7 +70,7 @@ dictate what gets sent.
 - `tags` — compose the head and body, and inject into the response
 - `dispatcher` — server-side sends through a swappable `TransportInterface`
 - `recovery` — find conversions nobody got, and send them
-- `commerce` — everything that knows Commerce exists
+- `commerce` — everything that knows Commerce exists, including `trackRefund()`
 
 ### Rules the code does not break
 
@@ -146,6 +146,11 @@ dictate what gets sent.
 - **The shared harness's `.env` is edited by other sessions.** A run that coincides with
   `CRAFT_ALLOW_ADMIN_CHANGES` being off fails with "project config … read-only mode" and cascades.
   Re-run the suite alone before believing it.
+- **`Variant::find()->status(null)->limit(2)` picks whatever the harness lists first**, which can be
+  a disabled variant Commerce refuses as a line item without a word — a one-item order and a check
+  that fails depending on other plugins' leftovers. Pick enabled, priced variants in a fixed order.
+- **A refund's request is the administrator's, not the customer's.** Consent for it comes from the
+  purchase's ledger rows (`Ledger::purchaseWasSent()`), passed to `process()` as `serverConsent`.
 
 See also `[[craft-plugin-gotchas]]` in the shared memory for family-wide traps.
 
@@ -155,8 +160,8 @@ No local PHP on this Mac. Everything runs inside the plugin-testing container:
 
 ```sh
 cd ~/Sites/plugin-testing
-ddev exec php  /var/www/craft-tape/tests/integration/checks.php           # 166 checks
-ddev exec php  /var/www/craft-tape/tests/integration/commerce-checks.php  #  23 checks, real orders
+ddev exec php  /var/www/craft-tape/tests/integration/checks.php           # 171 checks
+ddev exec php  /var/www/craft-tape/tests/integration/commerce-checks.php  #  31 checks, real orders
 ddev exec bash /var/www/craft-tape/tests/integration/cp-smoke.sh          #  20 checks, every screen
 ddev exec bash -c 'cd /var/www/craft-tape && vendor/bin/phpstan analyse && vendor/bin/ecs check'
 ```
