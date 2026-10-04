@@ -267,7 +267,7 @@ return [
     'Server-side' => 'Server-side',
     'server-side tracking is switched off' => 'server-side tracking is switched off',
     'Server-side tracking needs Tape Pro.' => 'Server-side tracking needs Tape Pro.',
-    'Sets GA4’s `user_id` for logged-in visitors, so sessions across devices join up.' => 'Sets GA4’s `user_id` for logged-in visitors, so sessions across devices join up.',
+    'Sets GA4’s `user_id` for logged-in visitors on pages that carry a conversion, and on server-side events, so purchases across devices join up. Never on ordinary pages, which may be cached and served to somebody else.' => 'Sets GA4’s `user_id` for logged-in visitors on pages that carry a conversion, and on server-side events, so purchases across devices join up. Never on ordinary pages, which may be cached and served to somebody else.',
     'settings' => 'settings',
     'Settings' => 'Settings',
     'Show' => 'Show',

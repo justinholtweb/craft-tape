@@ -125,7 +125,7 @@ class GoogleAds extends GtagPlatform
         return $destination->setting('conversionId');
     }
 
-    protected function configParams(Destination $destination): array
+    protected function configParams(Destination $destination, array $context = []): array
     {
         return [
             'allow_enhanced_conversions' => (bool)Plugin::getInstance()->enhancedConversions(),

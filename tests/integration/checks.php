@@ -256,6 +256,33 @@ check('every required setting has a field definition', function() use ($platform
     return true;
 });
 
+check('GA4 never writes a user ID into a page without a conversion on it', function() use ($platforms) {
+    $destination = destinationFor('ga4', ['measurementId' => 'G-ABC1234567', 'sendUserId' => true]);
+
+    // A real identity, or the check passes for the wrong reason: a console run has nobody logged in.
+    $admin = craft\elements\User::find()->admin()->one();
+
+    if ($admin === null) {
+        return 'the harness has no admin to log in as';
+    }
+
+    $users = Craft::$app->getUser();
+    $previous = $users->getIdentity();
+    $users->setIdentity($admin);
+
+    try {
+        // No matching data in the context means an ordinary, cacheable page.
+        $ordinary = json_encode($platforms['ga4']->boot($destination, Consent::allGranted(), ['userData' => null]));
+        $conversion = json_encode($platforms['ga4']->boot($destination, Consent::allGranted(), ['userData' => new UserData()]));
+    } finally {
+        $users->setIdentity($previous);
+    }
+
+    return !str_contains($ordinary, 'user_id') && str_contains($conversion, '"user_id":"' . $admin->id . '"')
+        ? true
+        : json_encode(['ordinary' => $ordinary, 'conversion' => $conversion]);
+});
+
 check('Lite sends no hashed customer data, whatever the setting says', function() use ($plugin) {
     $plugin->getSettings()->enhancedConversions = true;
     $destination = destinationFor('meta', ['pixelId' => '123456789012345']);

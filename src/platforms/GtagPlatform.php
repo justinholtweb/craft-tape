@@ -25,8 +25,12 @@ abstract class GtagPlatform extends BasePlatform
     /** The account/measurement ID this destination configures. */
     abstract protected function tagId(Destination $destination): ?string;
 
-    /** Extra parameters for this destination's `gtag('config', …)` call. */
-    protected function configParams(Destination $destination): array
+    /**
+     * Extra parameters for this destination's `gtag('config', …)` call.
+     *
+     * @param array<string, mixed> $context As passed to {@see boot()}.
+     */
+    protected function configParams(Destination $destination, array $context = []): array
     {
         return [];
     }
@@ -40,7 +44,7 @@ abstract class GtagPlatform extends BasePlatform
         }
 
         $settings = Plugin::getInstance()->getSettings();
-        $params = $this->configParams($destination);
+        $params = $this->configParams($destination, $context);
 
         // Tape sends every event explicitly. Leaving automatic page views on as well means the
         // first hit of every page is counted twice, which is the commonest way a GA4 property ends

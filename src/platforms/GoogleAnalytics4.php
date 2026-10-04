@@ -69,7 +69,7 @@ class GoogleAnalytics4 extends GtagPlatform
             ],
             'sendUserId' => [
                 'label' => Craft::t('tape', 'Send the Craft user ID'),
-                'instructions' => Craft::t('tape', 'Sets GA4’s `user_id` for logged-in visitors, so sessions across devices join up.'),
+                'instructions' => Craft::t('tape', 'Sets GA4’s `user_id` for logged-in visitors on pages that carry a conversion, and on server-side events, so purchases across devices join up. Never on ordinary pages, which may be cached and served to somebody else.'),
                 'type' => 'lightswitch',
             ],
         ];
@@ -85,11 +85,14 @@ class GoogleAnalytics4 extends GtagPlatform
         return $destination->setting('measurementId');
     }
 
-    protected function configParams(Destination $destination): array
+    protected function configParams(Destination $destination, array $context = []): array
     {
         $params = [];
 
-        if ($destination->setting('sendUserId')) {
+        // Only where matching data is allowed — a page carrying a conversion, which is never
+        // served from cache. Written into an ordinary page, one visitor's user ID would be cached
+        // and handed to everyone after them, and reading it would open a session on every page.
+        if ($destination->setting('sendUserId') && ($context['userData'] ?? null) !== null) {
             $userId = Craft::$app->getUser()->getIdentity()?->id;
 
             if ($userId !== null) {
