@@ -89,6 +89,31 @@ class TrackingEvent extends Model
         self::CLICK,
     ];
 
+    /** Every event name Tape knows the meaning of. Anything else is a custom event. */
+    public const STANDARD_EVENTS = [
+        self::PAGE_VIEW,
+        self::VIEW_ITEM,
+        self::VIEW_ITEM_LIST,
+        self::SELECT_ITEM,
+        self::SEARCH,
+        self::ADD_TO_WISHLIST,
+        self::ADD_TO_CART,
+        self::REMOVE_FROM_CART,
+        self::VIEW_CART,
+        self::BEGIN_CHECKOUT,
+        self::ADD_SHIPPING_INFO,
+        self::ADD_PAYMENT_INFO,
+        self::PURCHASE,
+        self::REFUND,
+        self::GENERATE_LEAD,
+        self::SIGN_UP,
+        self::LOGIN,
+        self::CONTACT,
+        self::SUBSCRIBE,
+        self::SCROLL,
+        self::CLICK,
+    ];
+
     public const SOURCE_SERVER = 'server';
     public const SOURCE_BROWSER = 'browser';
     public const SOURCE_RECOVERY = 'recovery';
@@ -210,6 +235,25 @@ class TrackingEvent extends Model
         }
 
         return round($total, 4);
+    }
+
+    /**
+     * Whether a name is a usable custom event — `brochure_download`, `quote_requested`.
+     *
+     * Lowercase, underscores, at most 40 characters: GA4's limit and the strictest of the
+     * platforms that accept one. The `ga_`, `google_` and `firebase_` prefixes are reserved by
+     * Google, which drops such events without saying so.
+     */
+    public static function isCustomName(string $name): bool
+    {
+        return preg_match('/^[a-z][a-z0-9_]{0,39}$/', $name) === 1
+            && !in_array($name, self::STANDARD_EVENTS, true)
+            && preg_match('/^(ga_|google_|firebase_)/', $name) !== 1;
+    }
+
+    public function isCustom(): bool
+    {
+        return self::isCustomName($this->name);
     }
 
     public function isCommerceEvent(): bool

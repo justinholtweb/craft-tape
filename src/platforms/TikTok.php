@@ -39,6 +39,12 @@ class TikTok extends BasePlatform
         return 'tiktok';
     }
 
+    /** In the browser only: `ttq.track` takes a custom name, the Events API is kept to standard ones. */
+    public function supportsCustomEvents(): bool
+    {
+        return true;
+    }
+
     public function displayName(): string
     {
         return 'TikTok';
@@ -107,7 +113,7 @@ class TikTok extends BasePlatform
             return [$this->call('ttq.page', [])];
         }
 
-        $name = self::EVENTS[$event->name] ?? null;
+        $name = self::EVENTS[$event->name] ?? ($event->isCustom() ? $event->name : null);
 
         if ($name === null) {
             return [];

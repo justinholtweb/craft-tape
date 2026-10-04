@@ -22,6 +22,12 @@ class Hotjar extends BasePlatform
         return 'hotjar';
     }
 
+    /** Hotjar events are free-form names, used for filtering recordings and heatmaps. */
+    public function supportsCustomEvents(): bool
+    {
+        return true;
+    }
+
     public function displayName(): string
     {
         return 'Hotjar';

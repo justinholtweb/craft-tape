@@ -37,6 +37,12 @@ class MicrosoftAds extends BasePlatform
         return 'microsoftAds';
     }
 
+    /** UET takes any event action; a goal can be defined on it in Microsoft Advertising. */
+    public function supportsCustomEvents(): bool
+    {
+        return true;
+    }
+
     public function displayName(): string
     {
         return 'Microsoft Advertising';

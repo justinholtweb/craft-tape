@@ -21,6 +21,12 @@ class Clarity extends BasePlatform
         return 'clarity';
     }
 
+    /** Clarity events are free-form names, used for filtering recordings. */
+    public function supportsCustomEvents(): bool
+    {
+        return true;
+    }
+
     public function displayName(): string
     {
         return 'Microsoft Clarity';

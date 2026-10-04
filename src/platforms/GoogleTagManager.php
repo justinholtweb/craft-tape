@@ -30,6 +30,12 @@ class GoogleTagManager extends BasePlatform
         return 'gtm';
     }
 
+    /** A data-layer push carries any name; what happens to it is the container's business. */
+    public function supportsCustomEvents(): bool
+    {
+        return true;
+    }
+
     public function displayName(): string
     {
         return 'Google Tag Manager';

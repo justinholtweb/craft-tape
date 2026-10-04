@@ -56,6 +56,9 @@ interface PlatformInterface
 
     public function supportsEvent(string $eventName): bool;
 
+    /** Whether events under names outside {@see TrackingEvent::STANDARD_EVENTS} are accepted. */
+    public function supportsCustomEvents(): bool;
+
     public function supportsServerSide(): bool;
 
     /**

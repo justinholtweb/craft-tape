@@ -32,6 +32,12 @@ class CustomSnippet extends BasePlatform
         return 'custom';
     }
 
+    /** The snippet receives every event it is given, under whatever name it has. */
+    public function supportsCustomEvents(): bool
+    {
+        return true;
+    }
+
     public function displayName(): string
     {
         return Craft::t('tape', 'Custom snippet');

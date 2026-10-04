@@ -37,6 +37,12 @@ class Reddit extends BasePlatform
         return 'reddit';
     }
 
+    /** In the browser only, as Reddit's `Custom` event carrying the name. */
+    public function supportsCustomEvents(): bool
+    {
+        return true;
+    }
+
     public function displayName(): string
     {
         return 'Reddit';
@@ -105,12 +111,18 @@ class Reddit extends BasePlatform
     public function mapEvent(TrackingEvent $event, Destination $destination): array
     {
         $name = self::EVENTS[$event->name] ?? null;
+        $custom = [];
+
+        if ($name === null && $event->isCustom()) {
+            $name = 'Custom';
+            $custom = ['customEventName' => $event->name];
+        }
 
         if ($name === null) {
             return [];
         }
 
-        return [$this->call('rdt', ['track', $name, $this->clean([
+        return [$this->call('rdt', ['track', $name, $custom + $this->clean([
             'currency' => $this->currency($event),
             'value' => $this->money($event->getValue()),
             'itemCount' => $event->getItemCount() ?: null,

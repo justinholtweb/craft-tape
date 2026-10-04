@@ -99,7 +99,19 @@ abstract class BasePlatform implements PlatformInterface
 
     public function supportsEvent(string $eventName): bool
     {
-        return in_array($eventName, $this->supportedEvents(), true);
+        return in_array($eventName, $this->supportedEvents(), true)
+            || ($this->supportsCustomEvents() && TrackingEvent::isCustomName($eventName));
+    }
+
+    /**
+     * Whether this platform takes an event under a name of the site's own choosing.
+     *
+     * Off by default. Platforms that count conversions against an ID configured in their own
+     * dashboard — Google Ads, LinkedIn, X — have nowhere to put a name they have never heard of.
+     */
+    public function supportsCustomEvents(): bool
+    {
+        return false;
     }
 
     public function supportsServerSide(): bool

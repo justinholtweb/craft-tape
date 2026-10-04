@@ -27,6 +27,12 @@ class Webhook extends BasePlatform
         return 'webhook';
     }
 
+    /** The receiver decides what a name means. */
+    public function supportsCustomEvents(): bool
+    {
+        return true;
+    }
+
     public function displayName(): string
     {
         return Craft::t('tape', 'Webhook');

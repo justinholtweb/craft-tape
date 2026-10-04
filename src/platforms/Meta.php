@@ -58,6 +58,12 @@ class Meta extends BasePlatform
         return 'meta';
     }
 
+    /** Sent as `trackCustom` under its own name, which a custom conversion or audience can be built on. */
+    public function supportsCustomEvents(): bool
+    {
+        return true;
+    }
+
     public function displayName(): string
     {
         return 'Meta';

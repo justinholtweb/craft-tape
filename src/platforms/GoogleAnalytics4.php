@@ -30,6 +30,12 @@ class GoogleAnalytics4 extends GtagPlatform
         return 'ga4';
     }
 
+    /** GA4 takes any event name, in the browser and through the Measurement Protocol. */
+    public function supportsCustomEvents(): bool
+    {
+        return true;
+    }
+
     public function displayName(): string
     {
         return 'Google Analytics 4';
