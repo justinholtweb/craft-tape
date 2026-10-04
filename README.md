@@ -201,8 +201,9 @@ Commerce, looked up from a product ID.
 | Conversion recovery and the accuracy report | | ✓ |
 | Triggers | | ✓ |
 
-A licence that lapses breaks nothing. Pro destinations stop firing and their configuration is left
-untouched, so renewing restores exactly what was there.
+Pro is $99 with a $59/year renewal. The renewal buys updates; Pro keeps working if it lapses. A site
+switched back to Lite breaks nothing: Pro destinations stop firing and their configuration is left
+untouched, so switching back to Pro restores exactly what was there.
 
 ---
 
