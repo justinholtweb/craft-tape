@@ -1477,7 +1477,7 @@ check('the trigger endpoint stops acting for an IP that floods it', function() u
     $endpoint = 'trigger';
     $limit = Events::ANONYMOUS_LIMITS[$endpoint];
     $ip = '203.0.113.' . random_int(1, 254);
-    $key = 'tape:rate:' . $endpoint . ':' . sha1($ip) . ':' . intdiv(time(), 60);
+    $key = 'tape:rate:anon-' . $endpoint . ':user:' . sha1(\justinholtweb\tape\helpers\RateLimit::key($ip)) . ':' . intdiv(time(), 60);
     $allowed = 0;
 
     try {

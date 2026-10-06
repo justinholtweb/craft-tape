@@ -91,26 +91,26 @@ until they match.
 ## Front-end endpoints are throttled
 
 The anonymous endpoints behind `tape.track()` and server-side triggers act on at most **120** and
-**30** requests per IP address per minute. Over the limit they answer as if nothing were
-configured, and Craft's log gets one warning per visitor per minute:
+**30** requests per visitor per minute, and 20 times that across the whole site. Over the limit they
+answer as if nothing were configured, and Craft's log gets one warning a minute:
 
 ```
-Tape throttled the map endpoint for one visitor after 120 requests in a minute.
+Tape is throttling the map endpoint.
 ```
 
-No real visitor gets near those numbers. If the warning appears for ordinary traffic, **Craft is
-not seeing your visitors' real IP addresses**. Behind a load balancer, reverse proxy or CDN, every
-request can appear to come from the proxy, so the whole site shares one allowance. IP exclusions
-are affected the same way.
+No real visitor gets near those numbers. If the warning appears for ordinary traffic, **Tape is not
+seeing your visitors' real IP addresses**. A visitor is their connecting IP address, with an IPv6
+address counted by its /64. Behind a load balancer, reverse proxy or CDN every request arrives from
+the proxy, so the whole site shares one allowance. IP exclusions are affected the same way.
 
-Craft reads the visitor's IP through its request component, configured by two general config
-settings:
+Tell Craft which proxies to believe, with two general config settings:
 
+- **`trustedHosts`**: the hosts trusted to send forwarded headers such as `X-Forwarded-For`. Tape
+  only reads a forwarded address when this names specific proxies. With Craft's default of "any
+  host", it ignores forwarded headers and counts the connecting address, because otherwise a visitor
+  could send a new header on every request and never be throttled.
 - **`ipHeaders`**: the headers Craft takes the client IP from, in order. List the header your proxy
   writes, such as `CF-Connecting-IP` for Cloudflare or `X-Forwarded-For` for most load balancers.
-- **`trustedHosts`**: which hosts are trusted to send forwarded headers such as `X-Forwarded-For`.
-  The default trusts any host. Narrow it to your proxy's address ranges so a visitor cannot send a
-  forwarded header of their own and appear to be somebody else.
 
 ```php
 // config/general.php

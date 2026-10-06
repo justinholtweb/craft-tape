@@ -2,7 +2,7 @@
     "name": "justinholtweb/craft-tape",
     "description": "Conversion tracking for Craft CMS — Google Ads, GA4, Meta, TikTok and a dozen more pixels, wired to your content and your Commerce funnel, with Consent Mode v2 and server-side tracking.",
     "type": "craft-plugin",
-    "version": "5.0.0",
+    "version": "5.0.1",
     "keywords": [
         "craft",
         "cms",

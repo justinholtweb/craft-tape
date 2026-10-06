@@ -47,8 +47,8 @@ destination. Use it to answer "did the purchase for order 1041 go to Meta?"
 
 ## The accuracy report (Pro)
 
-**Tape → Accuracy** shows, per day, the orders you completed against the orders that had a purchase
-conversion recorded. You can look back up to 90 days and filter to a single destination. If it
+**Tape → Accuracy** shows, per day, the orders you completed against how many of those same orders
+had a purchase conversion recorded, by the date of the order. You can look back up to 90 days and filter to a single destination. If it
 reads 62%, that is worth more than any amount of campaign tuning.
 
 The same screen shows each destination's health (sent, failed, emitted, pending), any destination

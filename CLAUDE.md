@@ -156,6 +156,12 @@ dictate what gets sent.
 - **`Variant::find()->status(null)->limit(2)` picks whatever the harness lists first**, which can be
   a disabled variant Commerce refuses as a line item without a word — a one-item order and a check
   that fails depending on other plugins' leftovers. Pick enabled, priced variants in a fixed order.
+- **The front-end throttle is `helpers\RateLimit`** (the family's): connecting address, `X-Forwarded-For`
+  only behind `trustedHosts`, IPv6 by /64, a lock, and a 20× site-wide ceiling. Until 5.0.1 it keyed on
+  `getUserIP()`, so a new forwarded header was a new budget. Its window is per minute, so a test that
+  bursts the limit has to start early in a minute or it straddles two and sees the limit plus some.
+- **A browser-only destination writes no ledger row for a trigger** — only server-side halves do. A
+  test about trigger dedupe needs a server-side destination, or it counts zero rows both times.
 - **A refund's request is the administrator's, not the customer's.** Consent for it comes from the
   purchase's ledger rows (`Ledger::purchaseWasSent()`), passed to `process()` as `serverConsent`.
 
@@ -169,6 +175,7 @@ No local PHP on this Mac. Everything runs inside the plugin-testing container:
 cd ~/Sites/plugin-testing
 ddev exec php  /var/www/craft-tape/tests/integration/checks.php           # 171 checks
 ddev exec php  /var/www/craft-tape/tests/integration/commerce-checks.php  #  31 checks, real orders
+docker exec -w /var/www/html ddev-plugin-testing-web php /var/www/craft-tape/tests/integration/security.php  # 9: throttle over HTTP, replay dedupe, live-only variants
 ddev exec bash /var/www/craft-tape/tests/integration/cp-smoke.sh          #  20 checks, every screen
 ddev exec bash -c 'cd /var/www/craft-tape && vendor/bin/phpstan analyse && vendor/bin/ecs check'
 ```

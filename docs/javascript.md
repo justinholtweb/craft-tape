@@ -38,9 +38,9 @@ back, and the runtime fires it. The call returns a promise for the server's answ
   through, each at most 200 characters.
 
 The endpoint behind `track()` is anonymous, because it has to work on a page served from a
-full-page cache. It is throttled to **120 requests per IP per minute**. Above that it answers as if
-no destination were configured, and Tape logs one warning. No real visitor gets anywhere near the
-limit.
+full-page cache. It is throttled to **120 requests per visitor per minute**, and 20 times that for
+the whole site. Above that it answers as if no destination were configured, and Tape logs one
+warning. No real visitor gets anywhere near the limit.
 
 ## tape.consent
 

@@ -8,6 +8,7 @@ use craft\base\ElementInterface;
 use craft\elements\User;
 use justinholtweb\tape\events\CollectEvent;
 use justinholtweb\tape\helpers\Identity;
+use justinholtweb\tape\helpers\RateLimit;
 use justinholtweb\tape\models\Destination;
 use justinholtweb\tape\models\EventItem;
 use justinholtweb\tape\models\TrackingEvent;
@@ -237,43 +238,40 @@ class Events extends Component
     }
 
     /**
-     * Whether this IP may make another anonymous request to the given endpoint this minute.
+     * Whether this visitor may make another anonymous request to the given endpoint this minute.
      *
      * The front-end endpoints are anonymous and CSRF-exempt, and each call can queue a Conversions
      * API send. Without a ceiling, a loop of `curl`s posting a trigger UID lifted from page source
      * becomes a stream of fake leads in somebody's ad account — and a queue nobody can drain. The
      * limits are generous enough that no real visitor reaches them. Counted in the cache, not the
      * session, so asking costs a page nothing in cacheability.
+     *
+     * Two budgets, both of which must have room: one per visitor and one for the whole site, at
+     * {@see RateLimit::GLOBAL_FACTOR} times that. Until 5.0.1 there was only the first, keyed on
+     * `getUserIP()` — which believes `X-Forwarded-For` from anyone, so a new header was a new
+     * budget — and counted without a lock, so parallel requests all read the same number.
+     *
+     * @param string|null $ip the visitor's address, for tests; otherwise the connecting one
      */
     public function allowAnonymousRequest(string $endpoint, ?string $ip = null): bool
     {
         $limit = self::ANONYMOUS_LIMITS[$endpoint] ?? null;
 
-        if ($ip === null) {
-            $request = Craft::$app->getRequest();
-            $ip = $request instanceof \craft\web\Request ? $request->getUserIP() : null;
-        }
-
-        if ($limit === null || $ip === null || $ip === '') {
+        if ($limit === null) {
             return true;
         }
 
-        $key = 'tape:rate:' . $endpoint . ':' . sha1($ip) . ':' . intdiv(time(), 60);
-        $cache = Craft::$app->getCache();
-        $count = (int)$cache->get($key);
-
-        if ($count >= $limit) {
-            if ($count === $limit) {
-                Craft::warning("Tape throttled the {$endpoint} endpoint for one visitor after {$limit} requests in a minute.", Plugin::LOG_CATEGORY);
-                $cache->set($key, $count + 1, 120);
-            }
-
-            return false;
+        if (RateLimit::allowFor("anon-$endpoint", $ip !== null ? RateLimit::key($ip) : RateLimit::client(), $limit)
+            && RateLimit::allowGlobal("anon-$endpoint", $limit * RateLimit::GLOBAL_FACTOR)) {
+            return true;
         }
 
-        $cache->set($key, $count + 1, 120);
+        $warned = "tape:rate:warned:$endpoint:" . intdiv(time(), 60);
+        if (Craft::$app->getCache()->add($warned, true, 120)) {
+            Craft::warning("Tape is throttling the {$endpoint} endpoint.", Plugin::LOG_CATEGORY);
+        }
 
-        return true;
+        return false;
     }
 
     // ── The visitor ─────────────────────────────────────────────────────────────────────────

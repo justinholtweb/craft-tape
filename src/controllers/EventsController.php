@@ -156,9 +156,13 @@ class EventsController extends Controller
             return $this->asJson(['ok' => false]);
         }
 
+        // The browser's own ID for this firing, if it sent a well-formed one. Without it the event
+        // mints its own, and there is nothing to deduplicate against.
+        $clientEventId = $this->eventId($body['eventId'] ?? null);
+
         $event = new TrackingEvent([
             'name' => $trigger->event,
-            'eventId' => $this->eventId($body['eventId'] ?? null),
+            'eventId' => $clientEventId,
             'value' => $trigger->value,
             'currency' => $trigger->currency,
             'source' => TrackingEvent::SOURCE_BROWSER,
@@ -168,9 +172,29 @@ class EventsController extends Controller
         $event->params = $this->params($body['params'] ?? []);
         $event->userData = $plugin->events->getUserData();
 
-        // Browser payloads are discarded: the page already has them. This call is only here for the
-        // ledger row and the server-side send.
-        $plugin->events->process($event);
+        // One firing, one send. A retried or replayed call with an event ID the ledger already holds
+        // is answered as done rather than queuing another Conversions API call — under a lock, so
+        // the same ID posted twice at once can't both get past the check.
+        $mutex = Craft::$app->getMutex();
+        $lock = $clientEventId !== '' ? 'tape:trigger:' . $clientEventId : null;
+
+        if ($lock !== null && !$mutex->acquire($lock, 2)) {
+            return $this->asJson(['ok' => true]);
+        }
+
+        try {
+            if ($lock !== null && $plugin->ledger->hasEventId($clientEventId)) {
+                return $this->asJson(['ok' => true]);
+            }
+
+            // Browser payloads are discarded: the page already has them. This call is only here for
+            // the ledger row and the server-side send.
+            $plugin->events->process($event);
+        } finally {
+            if ($lock !== null) {
+                $mutex->release($lock);
+            }
+        }
 
         return $this->asJson(['ok' => true]);
     }
@@ -220,9 +244,15 @@ class EventsController extends Controller
         }
 
         $quantity = max(1, min(999, (int)($body['qty'] ?? 1)));
-        // Enabled only: an anonymous caller must not be able to read the name and price of a product
-        // that has not been released, simply by guessing its ID.
-        $variants = \craft\commerce\elements\Variant::find()->id($ids)->all();
+        // Live only, and the product too: an anonymous caller must not be able to read the name and
+        // price of a product that has not been released, simply by guessing its ID. A variant's own
+        // status is only half of that — an enabled variant of a disabled or not-yet-published
+        // product resolved until 5.0.1.
+        $variants = \craft\commerce\elements\Variant::find()
+            ->id($ids)
+            ->status('enabled')
+            ->hasProduct(['status' => \craft\commerce\elements\Product::STATUS_LIVE])
+            ->all();
         $items = [];
         $index = 1;
 

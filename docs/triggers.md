@@ -53,9 +53,10 @@ with the trigger. When the condition is met, the runtime fires what it was given
 into sending a conversion worth ten thousand pounds.
 
 A destination that also sends server-side needs a call back to Craft when the trigger fires. That
-endpoint is anonymous, so it is throttled to **30 requests per IP per minute**. Above that it
-answers as though no trigger were configured, and Tape logs one warning. No real visitor gets
-anywhere near the limit. See
+endpoint is anonymous, so it is throttled to **30 requests per visitor per minute**, and 20 times
+that for the whole site. Above that it answers as though no trigger were configured, and Tape logs
+one warning. No real visitor gets anywhere near the limit. A firing is only acted on once: a call
+repeating an event ID the ledger already holds is answered without another server-side send. See
 [Troubleshooting](/plugins/craft-tape/docs/troubleshooting#front-end-endpoints-are-throttled) if
 every visitor seems to share one IP address.
 

@@ -207,6 +207,14 @@ class Ledger extends Component
      * @param string[] $delivered Destination handles whose payloads dispatched.
      * @param string[] $blocked Destination handles whose script never loaded.
      */
+    /**
+     * Whether any ledger row carries this event ID — i.e. this firing has been handled already.
+     */
+    public function hasEventId(string $eventId): bool
+    {
+        return $eventId !== '' && (new Query())->from('{{%tape_events}}')->where(['eventId' => $eventId])->exists();
+    }
+
     public function confirm(string $eventId, array $delivered, array $blocked): int
     {
         $uids = [];
@@ -355,22 +363,32 @@ class Ledger extends Component
             ->indexBy('day')
             ->all();
 
-        $ledgerDateExpr = $db->getIsMysql() ? 'DATE([[occurredAt]])' : "to_char([[occurredAt]], 'YYYY-MM-DD')";
-
-        $trackedQuery = (new Query())
-            ->select([new \yii\db\Expression("$ledgerDateExpr AS [[day]]"), 'total' => new \yii\db\Expression('COUNT(DISTINCT [[orderId]])')])
-            ->from(['{{%tape_events}}'])
-            ->where(['eventName' => TrackingEvent::PURCHASE])
-            ->andWhere(['not', ['orderId' => null]])
-            ->andWhere(['not', ['status' => self::STATUS_SKIPPED]])
-            ->andWhere(['>=', 'occurredAt', Db::prepareDateForDb($from)])
-            ->andWhere(['<=', 'occurredAt', Db::prepareDateForDb($until)]);
+        // Tracked = the orders above that have a purchase conversion, by the order's own date. Not
+        // a count of distinct order IDs in the ledger: that included orders since deleted, and
+        // conversions recorded on a different day from the order, so the report could claim more
+        // tracked orders than there were orders.
+        $converted = (new Query())
+            ->from(['e' => '{{%tape_events}}'])
+            ->where('[[e.orderId]] = [[o.id]]')
+            ->andWhere(['e.eventName' => TrackingEvent::PURCHASE])
+            ->andWhere(['not', ['e.status' => self::STATUS_SKIPPED]]);
 
         if ($destinationUid !== null) {
-            $trackedQuery->andWhere(['destinationUid' => $destinationUid]);
+            $converted->andWhere(['e.destinationUid' => $destinationUid]);
         }
 
-        $tracked = $trackedQuery->groupBy(['day'])->indexBy('day')->all();
+        $orderDateExpr = $db->getIsMysql() ? 'DATE([[o.dateOrdered]])' : "to_char([[o.dateOrdered]], 'YYYY-MM-DD')";
+
+        $tracked = (new Query())
+            ->select([new \yii\db\Expression("$orderDateExpr AS [[day]]"), 'total' => new \yii\db\Expression('COUNT(*)')])
+            ->from(['o' => '{{%commerce_orders}}'])
+            ->where(['o.isCompleted' => true])
+            ->andWhere(['>=', 'o.dateOrdered', Db::prepareDateForDb($from)])
+            ->andWhere(['<=', 'o.dateOrdered', Db::prepareDateForDb($until)])
+            ->andWhere(['exists', $converted])
+            ->groupBy(['day'])
+            ->indexBy('day')
+            ->all();
 
         $rows = [];
 

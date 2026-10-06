@@ -1,5 +1,30 @@
 # Release Notes for Tape
 
+## 5.0.1 - 2026-10-06
+
+> {warning} Behind a load balancer, proxy or CDN, set Craft's `trustedHosts` to your proxies'
+> addresses. Tape's front-end endpoints now believe `X-Forwarded-For` only from proxies you've
+> named, so without it every visitor shares the proxy's budget and real events get throttled.
+
+### Security
+- The anonymous `events/trigger` and `events/map` endpoints were throttled per IP, but the address
+  came from `getUserIP()`, which believes `X-Forwarded-For` from anyone. A new header on each
+  request was a fresh budget, so a script could still flood the queue with Conversions API sends and
+  feed fake leads into an ad account. The budget is now keyed on the connecting address (forwarded
+  headers only from `trustedHosts`, IPv6 grouped by /64), counted under a lock, and backed by a
+  site-wide ceiling of 20 times the per-visitor limit.
+- A trigger call replayed with the same event ID queued another server-side send each time. A
+  firing whose event ID is already in the ledger is now answered as done, under a lock so
+  simultaneous duplicates can't both get through.
+- `events/map` resolved enabled variants of disabled or unpublished products, so an anonymous caller
+  could read their names, SKUs and prices by guessing IDs. Lookups now need a live product as well as
+  an enabled variant.
+
+### Fixed
+- The accuracy report counted every order ID in the ledger as tracked, including orders since
+  deleted and conversions recorded on a different day, so it could show more than 100%. It now
+  counts the completed orders in the range that have a purchase conversion, by the order's date.
+
 ## 5.0.0
 
 Initial release.
